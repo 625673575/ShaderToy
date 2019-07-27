@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Data">
+      <UniqueIdentifier>{8f4b49db-cf13-4168-abde-51760776cfd1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\toyContainer.hlsl">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\toy.hlsl">
+      <Filter>Data</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ShaderToy.cpp" />
+    <ClCompile Include="Document.cpp" />
+    <ClCompile Include="TextEditor.cpp" />
+    <ClCompile Include="ShaderToyDocument.cpp" />
+    <ClCompile Include="ShaderToyPass.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ShaderToy.h" />
+    <ClInclude Include="Document.h" />
+    <ClInclude Include="TextEditor.h" />
+    <ClInclude Include="ShaderToyDocument.h" />
+    <ClInclude Include="ShaderToyPass.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Data\ShaderToyContainer.hlsl">
+      <Filter>Data</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
