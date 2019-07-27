@@ -31,14 +31,25 @@
 #include "ShaderToyPass.h"
 using namespace Falcor;
 using namespace ShaderStudio;
+
 class ShaderToy : public Renderer
 {
+    enum class BufferType {
+        Image,
+        RenderTarget
+    };
     struct ShaderToyBuffer {
+        BufferType type;
         ShaderToyPass::UniquePtr pass;
         Fbo::SharedPtr fbo;
+        Texture::SharedPtr image;
+        const Texture::SharedPtr& getTexture() {
+            return type == BufferType::Image ? image : fbo->getColorTexture(0);
+        }
     };
 public:
     ~ShaderToy();
+    static const uint32_t CHANNEL_COUNT=4;
 
     void onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext) override;
     void onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
@@ -59,6 +70,9 @@ private:
     std::unique_ptr<ShaderToyDocument>      mShaderToyDocument;
     ShaderToyPass::UniquePtr                mpMainPass;
     std::map<std::string, ShaderToyBuffer>  mpBufferPass;
-    Gui::DropdownList                       guiSelectChannel;
+    Gui::DropdownList                       channelDropdownList;
+    uint32_t                                selectedChannel[CHANNEL_COUNT];
+    bool                                    hasCompileError;
     void CompileShader(SampleCallbacks* pSample);
+    void RefreshChannelGUI(SampleCallbacks* pSample);
 };

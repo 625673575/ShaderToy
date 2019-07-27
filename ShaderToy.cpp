@@ -27,7 +27,6 @@
 ***************************************************************************/
 #include "ShaderToy.h"
 #include "Externals/dear_imgui/imgui.h"
-
 ShaderToy::~ShaderToy()
 {
 }
@@ -67,6 +66,9 @@ void ShaderToy::onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext)
 
 void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
+    if (hasCompileError) {
+        return;
+    }
     // iResolution
     float width = (float)pTargetFbo->getWidth();
     float height = (float)pTargetFbo->getHeight();
@@ -83,15 +85,28 @@ void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderCo
     static const glm::vec4 CLEAR_COLOR(0.0f);
     GraphicsState* pState = pRenderContext->getGraphicsState().get();
     for (auto& v : mpBufferPass) {
-        pRenderContext->clearFbo(v.second.fbo.get(), CLEAR_COLOR, 1.0f, 0);
-        pState->pushFbo(v.second.fbo);
-        v.second.pass->execute(pRenderContext);
-        pState->popFbo();
+        if (v.second.type == BufferType::RenderTarget) {
+            pRenderContext->clearFbo(v.second.fbo.get(), CLEAR_COLOR, 1.0f, 0);
+            pState->pushFbo(v.second.fbo);
+            v.second.pass->execute(pRenderContext);
+            pState->popFbo();
+        }
     }
     pState->setFbo(pTargetFbo);
     if (mpMainPass) {
-        if(mpBufferPass.find("BufferA")!=mpBufferPass.end())
-            mpToyVars->setTexture("iChannel0", mpBufferPass["BufferA"].fbo->getColorTexture(0));
+        char channelParamName[] = "iChannel0";
+        for (int i = 0; i < CHANNEL_COUNT; i++) {
+            channelParamName[8] = i + '0';
+            auto curSelect = selectedChannel[i];
+            if (curSelect < channelDropdownList.size()) {
+                auto passKey = channelDropdownList[curSelect].label;
+                if (auto it = mpBufferPass.find(passKey); it != mpBufferPass.end()) {
+                    mpToyVars->setTexture(channelParamName, it->second.getTexture());
+                }
+            }
+        }
+        if (mpBufferPass.find("BufferA") != mpBufferPass.end())
+            
         mpMainPass->execute(pRenderContext);
     }
 }
@@ -132,14 +147,26 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
         mShaderToyDocument->DoSave();
         CompileShader(pSample);
     }
-    if (!guiSelectChannel.empty()) {
-        if (pGui->beginGroup("MainImage Channel", true)) {
-            char n[] = "iChannel0";
-            for (int i = 0; i <= 3; i++) {
-                n[8] = i + '0';
-                if (uint32_t sel = 0; pGui->addDropdown(n, guiSelectChannel, sel)) {
+    if (pGui->addButton("Load Image")) {
+        std::string filename;
+        FileDialogFilterVec filters = { {"bmp"}, {"jpg"}, {"dds"}, {"png"}, {"tiff"}, {"tif"}, {"tga"} };
+        if (openFileDialog(filters, filename))
+        {
+            auto  pImage = createTextureFromFile(filename, false, true);
+            pImage->setName(getFilenameFromPath(filename));
+            if (mpBufferPass.find(pImage->getName()) == mpBufferPass.end()) {
+                mpBufferPass.emplace(pImage->getName(), ShaderToyBuffer{ BufferType::Image, nullptr,nullptr,pImage });
+                RefreshChannelGUI(pSample);
+            }
+        }
+    }
 
-                }
+    if (!channelDropdownList.empty() && pGui->beginGroup("Channel Setting", true)) {
+        char n[] = "iChannel0";
+        for (int i = 0; i < CHANNEL_COUNT; i++) {
+            n[8] = i + '0';
+            if (pGui->addDropdown(n, channelDropdownList, selectedChannel[i])) {
+                std::string selectTexture = channelDropdownList[selectedChannel[i]].label;
             }
         }
     }
@@ -149,7 +176,7 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
 {
     auto& shaderCodeMap = mShaderToyDocument->GetShaderCodes();
     std::string containerCode = Falcor::readFile("Data/ShaderToyContainer.hlsl");
-    int channelIndex = 0;
+    hasCompileError = false;
     for (auto& v : shaderCodeMap) {
         auto is_ps = v.first != mShaderToyDocument->GetCommonName();
         if (is_ps) {// find the mainImage Entry
@@ -166,23 +193,36 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
             copyCode.insert(entryStartPos, includeImageText);
             if (v.first == mShaderToyDocument->GetMainImageName()) {
                 mpMainPass = ShaderToyPass::create(copyCode);
+                auto version = mpMainPass->getProgram()->getActiveVersion();
+                hasCompileError |= version == nullptr;
             }
             else {//Buffer
                 Fbo::Desc fboDesc;
                 auto width = pSample->getWindow()->getClientAreaWidth();
                 auto height = pSample->getWindow()->getClientAreaHeight();
                 auto mpTmpFbo = FboHelper::create2D(width, height, fboDesc);
-                auto pTex = Texture::create2D(width,height, ResourceFormat::RGBA8Unorm, 1, 1, nullptr, Resource::BindFlags::RenderTarget | Resource::BindFlags::ShaderResource);
+                auto pTex = Texture::create2D(width, height, ResourceFormat::RGBA8Unorm, 1, 1, nullptr, Resource::BindFlags::RenderTarget | Resource::BindFlags::ShaderResource);
                 mpTmpFbo->attachColorTarget(pTex, 0);
-                ShaderToyBuffer buf{ ShaderToyPass::create(copyCode),mpTmpFbo };
+                ShaderToyBuffer buf{ BufferType::RenderTarget, ShaderToyPass::create(copyCode),mpTmpFbo,nullptr };
+                auto version = buf.pass->getProgram()->getActiveVersion();
+                hasCompileError |= version == nullptr;
                 mpBufferPass.emplace(v.first, std::move(buf));
-
-                //add dropdown for the iChannel
-                Gui::DropdownValue iChannelDropDown{ channelIndex++, v.first };
-                guiSelectChannel.push_back(iChannelDropDown);
             }
         }
     }
+
+    RefreshChannelGUI(pSample);
+}
+
+void ShaderToy::RefreshChannelGUI(SampleCallbacks* pSample)
+{
+    channelDropdownList.clear();
+    uint32_t i = 0;
+    for (auto& v : mpBufferPass) {
+        if (v.first.empty())continue;
+        channelDropdownList.push_back(Gui::DropdownValue{ i++,v.first });
+    }
+
 }
 
 void ShaderToy::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height)
