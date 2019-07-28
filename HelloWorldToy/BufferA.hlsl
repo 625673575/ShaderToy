@@ -1,7 +1,7 @@
 vec4 mainImage(in vec2 fragCoord)
 {
 vec3 finalColor;
-	vec2 uv = fragCoord.xy;
+	vec2 uv = fragCoord.xy*5.0;
     //center of the image
     vec2 c = iResolution.xy/2.0;
     finalColor = vec3( 0.3*_cross(uv, c, 240.0) );
@@ -25,6 +25,13 @@ vec3 finalColor;
     }
 	return vec4(finalColor,1.0);
 } 
+
+
+
+
+
+
+
 
 
 

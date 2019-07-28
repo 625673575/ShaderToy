@@ -105,8 +105,6 @@ void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderCo
                 }
             }
         }
-        if (mpBufferPass.find("BufferA") != mpBufferPass.end())
-            
         mpMainPass->execute(pRenderContext);
     }
 }
