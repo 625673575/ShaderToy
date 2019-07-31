@@ -1,190 +1,208 @@
-////////////////////////////////////////////////////////////////////////////////////////
-// INFO:
-// - use the mouse to navigate (x is rotation, y is zoom)
-// - play with the defines below to change the visuals
-////////////////////////////////////////////////////////////////////////////////////////
+// "Smiley Tutorial" by Martijn Steinrucken aka BigWings - 2017
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// Email:countfrolic@gmail.com Twitter:@The_ArtOfCode
+//
+// This Smiley is part of my ShaderToy Tutorial series on YouTube:
+// Part 1 - Creating the Smiley - https://www.youtube.com/watch?v=ZlNnrpM0TRg
+// Part 2 - Animating the Smiley - https://www.youtube.com/watch?v=vlD_KOrzGDc&t=83s
 
-// the more slices the slower
-#define SLICES 			50.0
-// start amplitude for the noise
-#define START_AMPLITUDE	0.01
-// start frequency for the noise
-#define START_FREQUENCY	1.25
-// start density value
-#define START_DENSITY	0.0
-// animation speed
-#define ANIMATION_SPEED 0.075
+#define S(a, b, t) smoothstep(a, b, t)
+#define B(a, b, blur, t) S(a-blur, a+blur, t)*S(b+blur, b-blur, t)
+#define sat(x) clamp(x, 0., 1.)
 
-////////////////////////////////////////////////////////////////////////////////////////
-// iq's 3d noise functions from the elevated shader (incl. modifications where needed)
-////////////////////////////////////////////////////////////////////////////////////////
-
-// rotation matrix for fbm octaves
-static const mat3 m = mat3( 0.00,  0.80,  0.60,
-              -0.80,  0.36, -0.48,
-              -0.60, -0.48,  0.64 );
-
-float hash( float n )
-{
-    return fract(sin(n)*43758.5453123);
+float remap01(float a, float b, float t) {
+    return sat((t - a) / (b - a));
 }
 
-// 3d noise function
-float noise( in vec3 x )
-{
-    vec3 p = floor(x);
-    vec3 f = fract(x);
-    f = f*f*(3.0-2.0*f);
-    float n = p.x + p.y*57.0 + 113.0*p.z;
-    float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
-                        mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
-                    mix(mix( hash(n+113.0), hash(n+114.0),f.x),
-                        mix( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
-    return res;
+float remap(float a, float b, float c, float d, float t) {
+    return sat((t - a) / (b - a)) * (d - c) + c;
 }
 
-// fbm noise for 2-4 octaves including rotation per octave
-float fbm( vec3 p )
-{
-    float f = 0.0;
-    f += 0.5000*noise( p );
-	p = mul(m,p)*2.02;
-    f += 0.2500*noise( p ); 
-// set to 1 for 2 octaves	
-#if 0	
-	return f/0.75;
-#else	
-	p = mul(m,p)*2.03;
-    f += 0.1250*noise( p );
-// set to 1 for 3 octaves, 0 for 4 octaves	
-#if 1	
-	return f/0.875;
-#else	
-	p = mul(m,p)*2.01;
-    f += 0.0625*noise( p );
-    return f/0.9375;
-#endif	
-#endif	
+vec2 within(vec2 uv, vec4 rect) {
+    return (uv - rect.xy) / (rect.zw - rect.xy);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
+vec4 Brow(vec2 uv, float smile) {
+    float offs = mix(.2, 0., smile);
+    uv.y += offs;
 
-// color gradient
-vec3 gradient(float s)
-{
-	return vec3(0.0, max(1.0-s*2.0, 0.0), max(s>0.5?1.0-(s-0.5)*5.0:1.0, 0.0));
+    float y = uv.y;
+    uv.y += uv.x * mix(.5, .8, smile) - mix(.1, .3, smile);
+    uv.x -= mix(.0, .1, smile);
+    uv -= .5;
+
+    vec4 col = vec4(0.);
+
+    float blur = .1;
+
+    float d1 = length(uv);
+    float s1 = S(.45, .45 - blur, d1);
+    float d2 = length(uv - vec2(.1, -.2) * .7);
+    float s2 = S(.5, .5 - blur, d2);
+
+    float browMask = sat(s1 - s2);
+
+    float colMask = remap01(.7, .8, y) * .75;
+    colMask *= S(.6, .9, browMask);
+    colMask *= smile;
+    vec4 browCol = mix(vec4(.4, .2, .2, 1.), vec4(1., .75, .5, 1.), colMask);
+
+    uv.y += .15 - offs * .5;
+    blur += mix(.0, .1, smile);
+    d1 = length(uv);
+    s1 = S(.45, .45 - blur, d1);
+    d2 = length(uv - vec2(.1, -.2) * .7);
+    s2 = S(.5, .5 - blur, d2);
+    float shadowMask = sat(s1 - s2);
+
+    col = mix(col, vec4(0., 0., 0., 1.), S(.0, 1., shadowMask) * .5);
+
+    col = mix(col, browCol, S(.2, .4, browMask));
+
+    return col;
 }
 
-// intersection for a sphere with a ray
-#define RADIUS 0.5
-bool intersectSphere(vec3 origin, vec3 direction, out float tmin, out float tmax)
-{
-    bool hit = false;
-	float a = dot(direction, direction);
-    float b = 2.0*dot(origin, direction);
-    float c = dot(origin, origin) - 0.5*0.5;
-    float disc = b*b - 4.0*a*c;           // discriminant
-    tmin = tmax = 0.0;
+vec4 Eye(vec2 uv, float side, vec2 m, float smile) {
+    uv -= .5;
+    uv.x *= side;
 
-    if (disc > 0.0) {
-        // Real root of disc, so intersection
-        float sdisc = sqrt(disc);
-        float t0 = (-b - sdisc)/(2.0*a);          // closest intersection distance
-        float t1 = (-b + sdisc)/(2.0*a);          // furthest intersection distance
+    float d = length(uv);
+    vec4 irisCol = vec4(.3, .5, 1., 1.);
+    vec4 col = mix(vec4(1.), irisCol, S(.1, .7, d) * .5);		// gradient in eye-white
+    col.a = S(.5, .48, d);									// eye mask
 
-		tmax = t1;
-        if (t0 >= 0.0) 
-            tmin = t0;
-        hit = true;
+    col.rgb *= 1. - S(.45, .5, d) * .5 * sat(-uv.y - uv.x * side); 	// eye shadow
+
+    d = length(uv - m * .4);									// offset iris pos to look at mouse cursor
+    col.rgb = mix(col.rgb, vec3(0.), S(.3, .28, d)); 		// iris outline
+
+    irisCol.rgb *= 1. + S(.3, .05, d);						// iris lighter in center
+    float irisMask = S(.28, .25, d);
+    col.rgb = mix(col.rgb, irisCol.rgb, irisMask);			// blend in iris
+
+    d = length(uv - m * .45);									// offset pupile to look at mouse cursor
+
+    float pupilSize = mix(.4, .16, smile);
+    float pupilMask = S(pupilSize, pupilSize * .85, d);
+    pupilMask *= irisMask;
+    col.rgb = mix(col.rgb, vec3(0.), pupilMask);		// blend in pupil
+
+    float t = iTime * 3.;
+    vec2 offs = vec2(sin(t + uv.y * 25.), sin(t + uv.x * 25.));
+    offs *= .01 * (1. - smile);
+
+    uv += offs;
+    float highlight = S(.1, .09, length(uv - vec2(-.15, .15)));
+    highlight += S(.07, .05, length(uv + vec2(-.08, .08)));
+    col.rgb = mix(col.rgb, vec3(1.), highlight);			// blend in highlight
+
+    return col;
+}
+
+vec4 Mouth(vec2 uv, float smile) {
+    uv -= .5;
+    vec4 col = vec4(.5, .18, .05, 1.);
+
+    uv.y *= 1.5;
+    uv.y -= uv.x * uv.x * 2. * smile;
+
+    uv.x *= mix(2.5, 1., smile);
+
+    float d = length(uv);
+    col.a = S(.5, .48, d);
+
+    vec2 tUv = uv;
+    tUv.y += (abs(uv.x) * .5 + .1) * (1. - smile);
+    float td = length(tUv - vec2(0., .6));
+
+    vec3 toothCol = vec3(1.) * S(.6, .35, d);
+    col.rgb = mix(col.rgb, toothCol, S(.4, .37, td));
+
+    td = length(uv + vec2(0., .5));
+    col.rgb = mix(col.rgb, vec3(1., .5, .5), S(.5, .2, td));
+    return col;
+}
+
+vec4 Head(vec2 uv) {
+    vec4 col = vec4(.9, .65, .1, 1.);
+
+    float d = length(uv);
+
+    col.a = S(.5, .49, d);
+
+    float edgeShade = remap01(.35, .5, d);
+    edgeShade *= edgeShade;
+    col.rgb *= 1. - edgeShade * .5;
+
+    col.rgb = mix(col.rgb, vec3(.6, .3, .1), S(.47, .48, d));
+
+    float highlight = S(.41, .405, d);
+    highlight *= remap(.41, -.1, .75, 0., uv.y);
+    highlight *= S(.18, .19, length(uv - vec2(.21, .08)));
+    col.rgb = mix(col.rgb, vec3(1.), highlight);
+
+    d = length(uv - vec2(.25, -.2));
+    float cheek = S(.2, .01, d) * .4;
+    cheek *= S(.17, .16, d);
+    col.rgb = mix(col.rgb, vec3(1., .1, .1), cheek);
+
+    return col;
+}
+
+vec4 Smiley(vec2 uv, vec2 m, float smile) {
+    vec4 col = vec4(0.);
+
+    if (length(uv) < .5) {					// only bother about pixels that are actually inside the head
+        float side = sign(uv.x);
+        uv.x = abs(uv.x);
+        vec4 head = Head(uv);
+        col = mix(col, head, head.a);
+
+        if (length(uv - vec2(.2, .075)) < .175) {
+            vec4 eye = Eye(within(uv, vec4(.03, -.1, .37, .25)), side, m, smile);
+            col = mix(col, eye, eye.a);
+        }
+
+        if (length(uv - vec2(.0, -.15)) < .3) {
+            vec4 mouth = Mouth(within(uv, vec4(-.3, -.43, .3, -.13)), smile);
+            col = mix(col, mouth, mouth.a);
+        }
+
+        if (length(uv - vec2(.185, .325)) < .18) {
+            vec4 brow = Brow(within(uv, vec4(.03, .2, .4, .45)), smile);
+            col = mix(col, brow, brow.a);
+        }
     }
 
-    return hit;
+    return col;
 }
 
-// rotate around axis
-vec2 rt(vec2 x,float y)
+vec4 mainImage(in vec2 fragCoord)
 {
-	return vec2(cos(y)*x.x-sin(y)*x.y,sin(y)*x.x+cos(y)*x.y);
+    float t = iTime;
+
+    vec2 uv =1.0 - fragCoord.xy / iResolution.xy;
+    uv -= .5;
+    uv.x *= iResolution.x / iResolution.y;
+
+    vec2 m =1.0 - iMouse.xy / iResolution.xy;
+    m -= .5;
+
+    if (m.x < -.49 && m.y < -.49) {			// make it that he looks around when the mouse hasn't been used
+        float s = sin(t * .5);
+        float c = cos(t * .38);
+
+        m = vec2(s, c) * .4;
+    }
+
+    if (length(m) > .707) m *= 0.;		// fix bug when coming back from fullscreen
+
+    float d = dot(uv, uv);
+    uv -= m * sat(.23 - d);
+
+    float smile = sin(t * .5) * .5 + .5;
+    return Smiley(uv, m, smile);
 }
-
-// shader main function
-vec4 mainImage(in vec2 fragCoord )
-{
-	// normalized and aspect ratio corrected pixel coordinate
-    vec2 p = (fragCoord.xy / iResolution.xy)*2.0-1.0;
-    p.x *= iResolution.x/ iResolution.y;
-
-	// camera and user input
-	vec3 oo = vec3(0, 0, 1.0-iMouse.y/iResolution.y);
-	vec3 od = normalize(vec3(p.x, p.y, -2.0));
-	vec3 o,d;	
-	o.xz = rt(oo.xz, 6.3*iMouse.x/iResolution.x);
-	o.y = oo.y;
-	d.xz = rt(od.xz, 6.3*iMouse.x/iResolution.x);
-	d.y = od.y;
-
-	// render
-	vec4 col = vec4(0, 0, 0, 0);
-	float tmin, tmax;
-	if (intersectSphere(o, d, tmin, tmax))
-	{	
-		// step thoug the sphere with max SLICES steps
-		for (float i = 0.0; i < SLICES; i+=1.0)
-		{
-			// stay within the sphere bounds
-			float t = tmin+i/SLICES;
-			if (t > tmax) 
-				break;
-			vec3 curpos = o + d*t;
-			
-			// get sphere falloff in s
-			float s = (0.5-length(curpos))*2.0;
-			s*=s;
-
-			// get turbulence in d
-			float a = START_AMPLITUDE;
-			float b = START_FREQUENCY;
-			float xd = START_DENSITY;
-			for (int j = 0; j < 3; j++)									
-			{
-				xd += 0.5/abs((fbm(5.0*curpos*b+ANIMATION_SPEED*iTime/b)*2.0-1.0)/a);
-				b *= 2.0;
-				a /= 2.0;
-			}
-			
-			// get gradient color depending on s
-			col.rgb += gradient(s)*max(xd*s,0.0);
-		}		
-	}
-
-	return col;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
