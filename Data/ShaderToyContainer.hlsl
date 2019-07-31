@@ -7,9 +7,9 @@ typedef float4x4 mat4;
 
 #define mix lerp
 #define fract frac
-#define mod(x, y) (x - y * floor(x / y))
-#define atan(y, x) atan2(x, y)
-#define texture(tex,uv) tex.Sample(gSampler, uv);
+#define mod(x, y) (x - (y * floor((x)/ (y))))
+#define atan(y, x) (atan2(x, y))
+#define texture(tex,uv) (tex.Sample(gSampler, (uv)))
 
 cbuffer ToyCB : register(b0)
 {

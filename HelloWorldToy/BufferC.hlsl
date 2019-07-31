@@ -181,11 +181,13 @@ vec4 mainImage(in vec2 fragCoord)
 {
     float t = iTime;
 
-    vec2 uv =1.0 - fragCoord.xy / iResolution.xy;
+    vec2 uv = fragCoord.xy / iResolution.xy;
+    uv.y = 1 - uv.y;
     uv -= .5;
     uv.x *= iResolution.x / iResolution.y;
 
-    vec2 m =1.0 - iMouse.xy / iResolution.xy;
+    vec2 m = iMouse.xy / iResolution.xy;
+    m.y = 1 - m.y;
     m -= .5;
 
     if (m.x < -.49 && m.y < -.49) {			// make it that he looks around when the mouse hasn't been used
@@ -203,6 +205,8 @@ vec4 mainImage(in vec2 fragCoord)
     float smile = sin(t * .5) * .5 + .5;
     return Smiley(uv, m, smile);
 }
+
+
 
 
 

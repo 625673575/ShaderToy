@@ -53,7 +53,6 @@ vec4 mainImage(in vec2 fragCoord)
 {
     float aspect = iResolution.x / iResolution.y;
     vec2 uv = fragCoord.xy / iResolution.xy;
-    uv.y = 1.0 - uv.y;
 
     float time = mod(iTime, 32.0); // + modelmat[0].x + modelmat[0].z;
 
@@ -104,6 +103,8 @@ vec4 mainImage(in vec2 fragCoord)
 
     return sum;
 }
+
+
 
 
 
