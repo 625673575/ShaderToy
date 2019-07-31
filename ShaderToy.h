@@ -49,7 +49,7 @@ class ShaderToy : public Renderer
     };
 public:
     ~ShaderToy();
-    static const uint32_t CHANNEL_COUNT=4;
+    static const uint32_t CHANNEL_COUNT = 4;
 
     void onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext) override;
     void onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
@@ -72,7 +72,10 @@ private:
     std::map<std::string, ShaderToyBuffer>  mpBufferPass;
     Gui::DropdownList                       channelDropdownList;
     uint32_t                                selectedChannel[CHANNEL_COUNT];
-    bool                                    hasCompileError;
+    bool                                    hasCompileError = false;
+    bool                                    isRenderBufferOnly = false;
+    uint32_t                                selectedRenderBuffer;
+    glm::vec4                               mouseCBData;
     void CompileShader(SampleCallbacks* pSample);
     void RefreshChannelGUI(SampleCallbacks* pSample);
 };

@@ -75,14 +75,23 @@ void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderCo
     ParameterBlock* pDefaultBlock = mpToyVars->getDefaultBlock().get();
     auto& cb0 = pDefaultBlock->getConstantBuffer(mToyCBBinding, 0);
     cb0["iResolution"] = glm::vec2(width, height);
-
-    // iGlobalTime
-    float iGlobalTime = (float)pSample->getCurrentTime();
+    float iGlobalTime = pSample->getCurrentTime();
     cb0["iTime"] = iGlobalTime;
+    float iTimeDelta = pSample->getLastFrameTime();
+    cb0["iTimeDelta"] = iTimeDelta;
+    auto iFrame = pSample->getFrameID();
+    cb0["iFrame"] = iFrame;
+    cb0["iMouse"] = mouseCBData;
+    pRenderContext->setGraphicsVars(mpToyVars);
 
     // run final pass
-    pRenderContext->setGraphicsVars(mpToyVars);
-    static const glm::vec4 CLEAR_COLOR(0.0f);
+
+    if (isRenderBufferOnly) {
+        mpBufferPass[channelDropdownList[selectedRenderBuffer].label].pass->execute(pRenderContext);
+        return;
+    }
+
+    static const glm::vec4 CLEAR_COLOR(0.25f);
     GraphicsState* pState = pRenderContext->getGraphicsState().get();
     for (auto& v : mpBufferPass) {
         if (v.second.type == BufferType::RenderTarget) {
@@ -135,6 +144,7 @@ bool ShaderToy::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEve
 bool ShaderToy::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
 {
     bool bHandled = false;
+    mouseCBData = glm::vec4(mouseEvent.pos.x* pSample->getWindow()->getClientAreaWidth(), mouseEvent.pos.y* pSample->getWindow()->getClientAreaHeight(), mouseEvent.wheelDelta.x, mouseEvent.wheelDelta.y);
     return bHandled;
 }
 
@@ -159,6 +169,12 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
         }
     }
 
+    if (pGui->addCheckBox("Render Buffer(Only accept texture file as Channel Input)", isRenderBufferOnly)) {
+
+    }
+    if (isRenderBufferOnly) {
+        pGui->addDropdown("Select Buffer", channelDropdownList, selectedRenderBuffer);
+    }
     if (!channelDropdownList.empty() && pGui->beginGroup("Channel Setting", true)) {
         char n[] = "iChannel0";
         for (int i = 0; i < CHANNEL_COUNT; i++) {
@@ -194,6 +210,10 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
                 mpMainPass = ShaderToyPass::create(copyCode);
                 auto version = mpMainPass->getProgram()->getActiveVersion();
                 hasCompileError |= version == nullptr;
+                if (!hasCompileError) {
+                    mpToyVars = GraphicsVars::create(mpMainPass->getProgram()->getReflector());
+                    mToyCBBinding = mpMainPass->getProgram()->getReflector()->getDefaultParameterBlock()->getResourceBinding("ToyCB");
+                }
             }
             else {//Buffer
                 Fbo::Desc fboDesc;

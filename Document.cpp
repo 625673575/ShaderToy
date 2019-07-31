@@ -16,7 +16,7 @@ void ShaderStudio::TextDocument::SetupEditor()
     //bpts.insert(24);
     //bpts.insert(47);
     //editor.SetBreakpoints(bpts);
-    
+
 }
 ShaderStudio::TextDocument::TextDocument(Gui* pgui,const std::string& path) :Document(getFilenameFromPath(path)),  pGui(pgui), Content(std::string(ImGui::GetVersion()) + "Paste code here ...")
 {
