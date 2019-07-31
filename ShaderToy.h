@@ -43,7 +43,7 @@ class ShaderToy : public Renderer
         ShaderToyPass::UniquePtr pass;
         Fbo::SharedPtr fbo;
         Texture::SharedPtr image;
-        const Texture::SharedPtr& getTexture() {
+        const Texture::SharedPtr getTexture() {
             return type == BufferType::Image ? image : fbo->getColorTexture(0);
         }
     };

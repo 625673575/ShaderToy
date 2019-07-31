@@ -52,6 +52,7 @@ void ShaderStudio::TextDocument::DisplayContents()
     auto cpos = editor.GetCursorPosition();
     ImGui::Begin(Name.c_str(), nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_MenuBar);
     ImGui::SetWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetWindowPos(ImVec2(350, 0), ImGuiCond_FirstUseEver);
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("File"))

@@ -80,7 +80,7 @@ void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderCo
     float iTimeDelta = pSample->getLastFrameTime();
     cb0["iTimeDelta"] = iTimeDelta;
     auto iFrame = pSample->getFrameID();
-    cb0["iFrame"] = iFrame;
+    cb0["iFrame"] = uint32_t(iFrame);
     cb0["iMouse"] = mouseCBData;
     pRenderContext->setGraphicsVars(mpToyVars);
 
@@ -150,6 +150,7 @@ bool ShaderToy::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEv
 
 void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 {
+    pGui->setCurrentWindowSize(350, 600);
     mShaderToyDocument->DisplayContents();
     if (pGui->addButton("Recompile")) {
         mShaderToyDocument->DoSave();
@@ -169,8 +170,8 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
         }
     }
 
-    if (pGui->addCheckBox("Render Buffer(Only accept texture file as Channel Input)", isRenderBufferOnly)) {
-
+    if (!channelDropdownList.empty()) {
+        pGui->addCheckBox("Render Buffer(Only accept texture file as Channel Input)", isRenderBufferOnly);
     }
     if (isRenderBufferOnly) {
         pGui->addDropdown("Select Buffer", channelDropdownList, selectedRenderBuffer);
