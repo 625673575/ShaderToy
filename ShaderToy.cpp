@@ -172,6 +172,7 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 
 void ShaderToy::CompileShader(SampleCallbacks* pSample)
 {
+    mpBufferPass.clear();
     auto& shaderCodeMap = mShaderToyDocument->GetShaderCodes();
     std::string containerCode = Falcor::readFile("Data/ShaderToyContainer.hlsl");
     hasCompileError = false;
