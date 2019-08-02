@@ -144,7 +144,10 @@ bool ShaderToy::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEve
 bool ShaderToy::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
 {
     bool bHandled = false;
-    mouseCBData = glm::vec4(mouseEvent.pos.x* pSample->getWindow()->getClientAreaWidth(), mouseEvent.pos.y* pSample->getWindow()->getClientAreaHeight(), mouseEvent.wheelDelta.x, mouseEvent.wheelDelta.y);
+    if (mouseEvent.type == MouseEvent::Type::LeftButtonUp) {
+        mouseCBData = glm::vec4(mouseEvent.pos.x * pSample->getWindow()->getClientAreaWidth(), mouseEvent.pos.y * pSample->getWindow()->getClientAreaHeight(), mouseEvent.wheelDelta.x, mouseEvent.wheelDelta.y);
+        bHandled = true;
+    }
     return bHandled;
 }
 
