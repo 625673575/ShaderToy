@@ -51,7 +51,10 @@ void ShaderToy::onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext)
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setMaxAnisotropy(8);
     mpLinearSampler = Sampler::create(samplerDesc);
 
-    mpMainPass = ShaderToyPass::create(Falcor::readFile("Data/toyContainer.hlsl"));
+    ShaderToyBuffer mainBuffer{ BufferType::MainPass,ShaderToyPass::create(Falcor::readFile("Data/toyContainer.hlsl")),nullptr,nullptr };
+
+    mBufferPass.emplace(ShaderToyDocument::GetMainImageName(), std::move(mainBuffer));
+    auto mpMainPass = GetMainPass();
     // Create Constant buffer
     mpToyVars = GraphicsVars::create(mpMainPass->getProgram()->getReflector());
 
@@ -87,34 +90,38 @@ void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderCo
     // run final pass
 
     if (isRenderBufferOnly) {
-        mpBufferPass[channelDropdownList[selectedRenderBuffer].label].pass->execute(pRenderContext);
+        mBufferPass[mChannelDropdownList[selectedRenderBuffer].label].pass->execute(pRenderContext);
         return;
     }
 
-    static const glm::vec4 CLEAR_COLOR(0.25f);
+    static const glm::vec4 CLEAR_COLOR(0.f);
     GraphicsState* pState = pRenderContext->getGraphicsState().get();
-    for (auto& v : mpBufferPass) {
-        if (v.second.type == BufferType::RenderTarget) {
-            pRenderContext->clearFbo(v.second.fbo.get(), CLEAR_COLOR, 1.0f, 0);
-            pState->pushFbo(v.second.fbo);
-            v.second.pass->execute(pRenderContext);
-            pState->popFbo();
-        }
-    }
-    pState->setFbo(pTargetFbo);
-    if (mpMainPass) {
-        char channelParamName[] = "iChannel0";
-        for (int i = 0; i < CHANNEL_COUNT; i++) {
-            channelParamName[8] = i + '0';
-            auto curSelect = selectedChannel[i];
-            if (curSelect < channelDropdownList.size()) {
-                auto passKey = channelDropdownList[curSelect].label;
-                if (auto it = mpBufferPass.find(passKey); it != mpBufferPass.end()) {
-                    mpToyVars->setTexture(channelParamName, it->second.getTexture());
+    for (auto& v : mBufferPass) {
+        if (v.second.type != BufferType::Image) {
+            if (v.second.type == BufferType::MainPass) {
+                pState->setFbo(pTargetFbo);
+                pRenderContext->clearFbo(pTargetFbo.get(), CLEAR_COLOR, 1.0f, 0);
+            }
+            else {
+                pState->pushFbo(v.second.fbo);
+                pRenderContext->clearFbo(v.second.fbo.get(), CLEAR_COLOR, 1.0f, 0);
+            }
+            char channelParamName[] = "iChannel0";
+            for (int i = 0; i < CHANNEL_COUNT; i++) {
+                channelParamName[8] = i + '0';
+                auto curSelect = v.second.selectedChannel[i];
+                if (curSelect < mChannelDropdownList.size()) {
+                    auto passKey = mChannelDropdownList[curSelect].label;
+                    if (auto it = mBufferPass.find(passKey); it != mBufferPass.end()) {
+                        mpToyVars->setTexture(channelParamName, it->second.getTexture());
+                    }
                 }
             }
+            v.second.pass->execute(pRenderContext);
+            if (v.second.type != BufferType::MainPass) {
+                pState->popFbo();
+            }
         }
-        mpMainPass->execute(pRenderContext);
     }
 }
 
@@ -166,25 +173,31 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
         {
             auto  pImage = createTextureFromFile(filename, false, true);
             pImage->setName(getFilenameFromPath(filename));
-            if (mpBufferPass.find(pImage->getName()) == mpBufferPass.end()) {
-                mpBufferPass.emplace(pImage->getName(), ShaderToyBuffer{ BufferType::Image, nullptr,nullptr,pImage });
+            if (mBufferPass.find(pImage->getName()) == mBufferPass.end()) {
+                mBufferPass.emplace(pImage->getName(), ShaderToyBuffer{ BufferType::Image, nullptr,nullptr,pImage });
                 RefreshChannelGUI(pSample);
             }
         }
     }
 
-    if (!channelDropdownList.empty()) {
+    if (!mChannelDropdownList.empty()) {
         pGui->addCheckBox("Render Buffer(Only accept texture file as Channel Input)", isRenderBufferOnly);
     }
     if (isRenderBufferOnly) {
-        pGui->addDropdown("Select Buffer", channelDropdownList, selectedRenderBuffer);
+        pGui->addDropdown("Select Buffer", mChannelDropdownList, selectedRenderBuffer);
     }
-    if (!channelDropdownList.empty() && pGui->beginGroup("Channel Setting", true)) {
-        char n[] = "iChannel0";
-        for (int i = 0; i < CHANNEL_COUNT; i++) {
-            n[8] = i + '0';
-            if (pGui->addDropdown(n, channelDropdownList, selectedChannel[i])) {
-                std::string selectTexture = channelDropdownList[selectedChannel[i]].label;
+    if (!mChannelDropdownList.empty()) {
+        for (auto& pass : mBufferPass) {
+            if (pass.second.type != BufferType::Image && pGui->beginGroup(pass.first + "Channel", true)) {
+                std::string name = pass.first + "Channeli";
+                for (int i = 0; i < CHANNEL_COUNT; i++) {
+                    name[name.length()-2] = '0'+i;
+                    auto& refIndex = pass.second.selectedChannel[i];
+                    if (pGui->addDropdown(name.c_str(), mChannelDropdownList, refIndex)) {
+                        std::string selectTexture = mChannelDropdownList[refIndex].label;
+                    }
+                }
+                pGui->endGroup();
             }
         }
     }
@@ -192,7 +205,7 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 
 void ShaderToy::CompileShader(SampleCallbacks* pSample)
 {
-    mpBufferPass.clear();
+    mBufferPass.clear();
     auto& shaderCodeMap = mShaderToyDocument->GetShaderCodes();
     std::string containerCode = Falcor::readFile("Data/ShaderToyContainer.hlsl");
     hasCompileError = false;
@@ -211,7 +224,9 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
             std::string includeImageText = Falcor::readFile(v.second.Path);
             copyCode.insert(entryStartPos, includeImageText);
             if (v.first == mShaderToyDocument->GetMainImageName()) {
-                mpMainPass = ShaderToyPass::create(copyCode);
+                mBufferPass[ShaderToyDocument::GetMainImageName()].pass = ShaderToyPass::create(copyCode);
+                mBufferPass[ShaderToyDocument::GetMainImageName()].type = BufferType::MainPass;
+                auto mpMainPass = GetMainPass();
                 auto version = mpMainPass->getProgram()->getActiveVersion();
                 hasCompileError |= version == nullptr;
                 if (!hasCompileError) {
@@ -229,7 +244,7 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
                 ShaderToyBuffer buf{ BufferType::RenderTarget, ShaderToyPass::create(copyCode),mpTmpFbo,nullptr };
                 auto version = buf.pass->getProgram()->getActiveVersion();
                 hasCompileError |= version == nullptr;
-                mpBufferPass.emplace(v.first, std::move(buf));
+                mBufferPass.emplace(v.first, std::move(buf));
             }
         }
     }
@@ -239,11 +254,11 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
 
 void ShaderToy::RefreshChannelGUI(SampleCallbacks* pSample)
 {
-    channelDropdownList.clear();
+    mChannelDropdownList.clear();
     uint32_t i = 0;
-    for (auto& v : mpBufferPass) {
-        if (v.first.empty())continue;
-        channelDropdownList.push_back(Gui::DropdownValue{ i++,v.first });
+    for (auto& v : mBufferPass) {
+        if (v.first.empty() || v.second.type == BufferType::MainPass)continue;
+        mChannelDropdownList.push_back(Gui::DropdownValue{ i++,v.first });
     }
 
 }

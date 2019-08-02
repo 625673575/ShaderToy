@@ -32,24 +32,26 @@
 using namespace Falcor;
 using namespace ShaderStudio;
 
+static const uint32_t CHANNEL_COUNT = 4;
 class ShaderToy : public Renderer
 {
     enum class BufferType {
         Image,
-        RenderTarget
+        RenderTarget,
+        MainPass
     };
     struct ShaderToyBuffer {
         BufferType type;
         ShaderToyPass::UniquePtr pass;
         Fbo::SharedPtr fbo;
         Texture::SharedPtr image;
+        uint32_t selectedChannel[CHANNEL_COUNT];
         const Texture::SharedPtr getTexture() {
             return type == BufferType::Image ? image : fbo->getColorTexture(0);
         }
     };
 public:
     ~ShaderToy();
-    static const uint32_t CHANNEL_COUNT = 4;
 
     void onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext) override;
     void onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
@@ -68,14 +70,13 @@ private:
     ProgramReflection::BindLocation mToyCBBinding;
 private:
     std::unique_ptr<ShaderToyDocument>      mShaderToyDocument;
-    ShaderToyPass::UniquePtr                mpMainPass;
-    std::map<std::string, ShaderToyBuffer>  mpBufferPass;
-    Gui::DropdownList                       channelDropdownList;
-    uint32_t                                selectedChannel[CHANNEL_COUNT];
+    std::map<std::string, ShaderToyBuffer>  mBufferPass;
+    Gui::DropdownList                       mChannelDropdownList;
     bool                                    hasCompileError = false;
     bool                                    isRenderBufferOnly = false;
     uint32_t                                selectedRenderBuffer;
     glm::vec4                               mouseCBData;
     void CompileShader(SampleCallbacks* pSample);
     void RefreshChannelGUI(SampleCallbacks* pSample);
+    ShaderToyPass* GetMainPass() { return mBufferPass[ShaderToyDocument::GetMainImageName()].pass.get(); }
 };

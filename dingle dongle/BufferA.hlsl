@@ -63,3 +63,14 @@ vec4 mainImage( in vec2 fragCoord )
     return vec4(newFrame + oldFrame,1.0)*0.85;
 }
 
+
+
+
+
+
+
+
+
+
+
+
