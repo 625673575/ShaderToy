@@ -43,6 +43,7 @@ namespace ShaderStudio {
         void DoOpen() override;
         void DoSave()override;
         void DisplayContents() override;
+        void DoQueueClose()override;
         void AddPage(const std::string& page);
     };
 }

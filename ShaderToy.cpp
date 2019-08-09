@@ -50,8 +50,9 @@ void ShaderToy::onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext)
     Sampler::Desc samplerDesc;
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setMaxAnisotropy(8);
     mpLinearSampler = Sampler::create(samplerDesc);
-
-    ShaderToyBuffer mainBuffer{ BufferType::MainPass,ShaderToyPass::create(Falcor::readFile("Data/toyContainer.hlsl")),nullptr,nullptr };
+    std::string defaultPassCode = Falcor::readFile("Data/ShaderToyContainer.hlsl");
+    defaultPassCode.append("\n#include \"toy.hlsl\"\n");
+    ShaderToyBuffer mainBuffer{ BufferType::MainPass,ShaderToyPass::create(defaultPassCode),nullptr,nullptr };
 
     mBufferPass.emplace(ShaderToyDocument::GetMainImageName(), std::move(mainBuffer));
     auto mpMainPass = GetMainPass();
@@ -205,7 +206,15 @@ void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 
 void ShaderToy::CompileShader(SampleCallbacks* pSample)
 {
-    mBufferPass.clear();
+    auto mainBufferName = ShaderToyDocument::GetMainImageName();
+    for (auto iter = mBufferPass.begin(); iter != mBufferPass.end(); ) {
+        if (iter->first!= mainBufferName) {
+            mBufferPass.erase(iter++);
+        }
+        else {
+            ++iter;
+        }
+    }
     auto& shaderCodeMap = mShaderToyDocument->GetShaderCodes();
     std::string containerCode = Falcor::readFile("Data/ShaderToyContainer.hlsl");
     hasCompileError = false;
@@ -223,9 +232,9 @@ void ShaderToy::CompileShader(SampleCallbacks* pSample)
             }
             std::string includeImageText = Falcor::readFile(v.second.Path);
             copyCode.insert(entryStartPos, includeImageText);
-            if (v.first == mShaderToyDocument->GetMainImageName()) {
-                mBufferPass[ShaderToyDocument::GetMainImageName()].pass = ShaderToyPass::create(copyCode);
-                mBufferPass[ShaderToyDocument::GetMainImageName()].type = BufferType::MainPass;
+            if (v.first == mainBufferName) {
+                mBufferPass[mainBufferName].pass = ShaderToyPass::create(copyCode);
+                mBufferPass[mainBufferName].type = BufferType::MainPass;
                 auto mpMainPass = GetMainPass();
                 auto version = mpMainPass->getProgram()->getActiveVersion();
                 hasCompileError |= version == nullptr;

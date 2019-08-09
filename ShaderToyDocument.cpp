@@ -7,6 +7,10 @@ ShaderStudio::ShaderToyDocument::ShaderToyDocument(Falcor::Gui* pgui, const std:
 
 void ShaderStudio::ShaderToyDocument::DoOpen()
 {
+    if (!mTextDocuments.empty()) {
+        DoQueueClose();
+    }
+
     std::string mainImageFile = Path + "/MainImage.hlsl";
     if (doesFileExist(mainImageFile)) {
         insertIfNotExist(GetMainImageName(), mainImageFile);
@@ -37,7 +41,7 @@ void ShaderStudio::ShaderToyDocument::DoOpen()
     }
 
     for (auto& v : mTextDocuments) {
-       v.second.DoOpen();
+        v.second.DoOpen();
     }
     Document::DoOpen();
 }
@@ -90,6 +94,19 @@ void ShaderStudio::ShaderToyDocument::DisplayContents()
         }
         v.second.DisplayContents();
     }
+}
+
+void ShaderStudio::ShaderToyDocument::DoQueueClose()
+{
+    for (auto& v : mTextDocuments) {
+        if (v.second.IsDirty) {
+            MsgBoxButton btn = Falcor::msgBox("是否需要保存" + v.first + "的改动", MsgBoxType::OkCancel);
+            if (btn == MsgBoxButton::Ok) {
+                v.second.DoSave();
+            }
+        }
+    }
+    mTextDocuments.clear();
 }
 
 void ShaderStudio::ShaderToyDocument::AddPage(const std::string& page)
