@@ -19,6 +19,11 @@
     <ClCompile Include="TextEditor.cpp" />
     <ClCompile Include="ShaderToyDocument.cpp" />
     <ClCompile Include="ShaderToyPass.cpp" />
+    <ClCompile Include="imnodes.cpp" />
+    <ClCompile Include="color_node_editor.cpp" />
+    <ClCompile Include="ShaderNodeEditor.cpp" />
+    <ClCompile Include="Node.cpp" />
+    <ClCompile Include="NodeInterpreter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ShaderToy.h" />
@@ -26,6 +31,12 @@
     <ClInclude Include="TextEditor.h" />
     <ClInclude Include="ShaderToyDocument.h" />
     <ClInclude Include="ShaderToyPass.h" />
+    <ClInclude Include="imnodes.h" />
+    <ClInclude Include="node_editor.h" />
+    <ClInclude Include="ShaderNodeEditor.h" />
+    <ClInclude Include="Node.h" />
+    <ClInclude Include="Operation.hpp" />
+    <ClInclude Include="NodeInterpreter.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\ShaderToyContainer.hlsl">

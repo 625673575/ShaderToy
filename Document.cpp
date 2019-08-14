@@ -8,7 +8,7 @@ void ShaderStudio::TextDocument::SetupEditor()
     markers.insert(std::make_pair<int, std::string>(6, "Example error here:\nInclude file not found: \"TextEditor.h\""));
     markers.insert(std::make_pair<int, std::string>(41, "Another example error"));
     editor.SetErrorMarkers(markers);
-    ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("c:/windows/fonts/Arial.ttf", 13.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseSimplifiedCommon());
+    ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("c:/windows/fonts/Arial.ttf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseSimplifiedCommon());
     IM_ASSERT(font != NULL);
     ImGui::GetIO().FontDefault = font;
     // "breakpoint" markers

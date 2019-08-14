@@ -26,6 +26,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 #include "ShaderToy.h"
+#include "imnodes.h"
+#include "node_editor.h"
 #include "Externals/dear_imgui/imgui.h"
 ShaderToy::~ShaderToy()
 {
@@ -65,7 +67,9 @@ void ShaderToy::onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext)
     //
     std::string docPath("F:\\Cpp\\Falcor\\Samples\\Core\\ShaderToy\\Data\\toyContainer.hlsl");
     mShaderToyDocument = std::make_unique<ShaderToyDocument>(pSample->getGui(), docPath);
-    //mShaderToyDocument->DoOpen();
+
+    imnodes::Initialize();
+    example::NodeEditorInitialize();
 }
 
 void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
@@ -128,6 +132,8 @@ void ShaderToy::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderCo
 
 void ShaderToy::onShutdown(SampleCallbacks* pSample)
 {
+    imnodes::Shutdown();
+    example::NodeEditorShutdown();
 }
 
 bool ShaderToy::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
@@ -161,6 +167,7 @@ bool ShaderToy::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEv
 
 void ShaderToy::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 {
+    example::NodeEditorShow();
     pGui->setCurrentWindowSize(350, 600);
     mShaderToyDocument->DisplayContents();
     if (pGui->addButton("Recompile")) {
@@ -287,7 +294,7 @@ int main(int argc, char** argv)
     SampleConfig config;
     config.windowDesc.width = 1280;
     config.windowDesc.height = 720;
-    config.deviceDesc.enableVsync = true;
+    config.deviceDesc.enableVsync = false;
     config.windowDesc.resizableWindow = true;
     config.windowDesc.title = "Falcor Shader Toy";
 #ifdef _WIN32
