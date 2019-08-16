@@ -5,8 +5,12 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
+#include <map>
 #include <unordered_set>
 #include <utility>
+#include <functional>
+#include <string>
+#include <Windows.h>
 namespace ShaderNodeEditor {
     struct Id
     {
@@ -37,7 +41,7 @@ namespace ShaderNodeEditor {
     };
     struct OutputNode
     {
-        size_t r, g, b, a;
+        size_t in;
         size_t out;
     };
     enum PinValueType {
@@ -56,10 +60,19 @@ namespace ShaderNodeEditor {
         UINT,
         BOOL,
     };
+    struct PinValue {
+        float fVal[16];
+    };
+    struct NodeParam {
+        NodeParam(size_t _id) :id(_id) {}
+        size_t id;
+        PinValue value;
+        //operator const size_t() const{ return id; }
+    };
     struct NodeId
     {
         size_t op;
-        std::vector<size_t> params;
+        std::vector<NodeParam> params;
     };
 
     template<class T>
@@ -180,10 +193,9 @@ namespace ShaderNodeEditor {
     enum NodeType
     {
         Node_Number,
-        Node_NumberExpression, // the number isn't stored in the node, but is
-                               // provided by another node
-                               Node_Operation,
-                               Node_Output
+        Node_NumberExpression,
+        Node_Operation,
+        Node_Output
     };
     struct NodeInputPinMeta {
         const char* name;
@@ -191,15 +203,6 @@ namespace ShaderNodeEditor {
     };
     struct NodeOutputPinMeta {
         const char* name;
-    };
-    union PinValue {
-        float fVal;
-        float f2Val[2];
-        float f3Val[3];
-        float f4Val[4];
-        float f22Val[2][2];
-        float f33Val[3][3];
-        float f44Val[4][4];
     };
     struct INodeInterpreter {
         INodeInterpreter() = default;
@@ -209,12 +212,31 @@ namespace ShaderNodeEditor {
         virtual std::string Interpret() = 0;
         virtual const NodeInputPinMeta& GetInputMetaInfo(size_t i) const = 0;
         virtual const NodeOutputPinMeta& GetOutputMetaInfo(size_t i) const = 0;
+        virtual const char* GetCategory() const = 0;
+        virtual bool ForceShowNumber() { return false; }
         //如果有变量名,就单独创建一个变量
         std::string variableName;
         NodeType type;
-        PinValue number;
+        PinValue number;//constant variable output用
         NodeId Id;
     };
+
+#define FORCE_SHOW_NUMBER bool ForceShowNumber()override { return true; }
+    struct IVariableInterpreter :public INodeInterpreter {
+        IVariableInterpreter() = default;
+        virtual ~IVariableInterpreter() = default;
+        FORCE_SHOW_NUMBER
+    };
+    struct IConstantInterpreter :public INodeInterpreter {
+        IConstantInterpreter() = default;
+        virtual ~IConstantInterpreter() = default;
+        FORCE_SHOW_NUMBER
+    };
+    struct IOperationInterpreter :public INodeInterpreter {
+        IOperationInterpreter() = default;
+        virtual ~IOperationInterpreter() = default;
+    };
+
     struct Edge
     {
         // the from, to variables store the node ids of the nodes contained in the
@@ -245,12 +267,11 @@ namespace ShaderNodeEditor {
 
         // Element access
 
-        inline INodeInterpreter* node(const size_t node_id)
+        inline std::shared_ptr<INodeInterpreter> node(const size_t node_id)
         {
-            return const_cast<INodeInterpreter*>(
-                static_cast<const Graph*>(this)->node(node_id));
+            return static_cast<const Graph*>(this)->node(node_id);
         }
-        inline const INodeInterpreter* node(const size_t node_id) const
+        inline const std::shared_ptr<INodeInterpreter>& node(const size_t node_id) const
         {
             assert(nodes_.find(node_id) != nodes_.end());
             return nodes_.at(node_id);
@@ -285,7 +306,7 @@ namespace ShaderNodeEditor {
 
         // Modifiers
 
-        size_t add_node(const INodeInterpreter* node)
+        size_t add_node(const std::shared_ptr<INodeInterpreter>& node)
         {
             const size_t id = current_id_++;
             nodes_.insert(std::make_pair(id, node));
@@ -294,6 +315,9 @@ namespace ShaderNodeEditor {
             return id;
         }
 
+        void erase_node(const NodeParam param) {
+            return erase_node(param.id);
+        }
         void erase_node(const size_t node_id)
         {
             // first, collect all the edges from the adjacency lists
@@ -346,10 +370,11 @@ namespace ShaderNodeEditor {
 
             edges_.erase(edge);
         }
-
+        void evaluate(const size_t root_node);
+        
     private:
         size_t current_id_;
-        std::unordered_map<size_t, const INodeInterpreter*> nodes_;
+        std::unordered_map<size_t, std::shared_ptr<INodeInterpreter>> nodes_;
         std::unordered_map<size_t, AdjacencyArray> edges_from_node_;
         std::unordered_map<size_t, AdjacencyArray> edges_to_node_;
         std::unordered_map<size_t, Edge> edges_;
