@@ -22,13 +22,15 @@ namespace ShaderNodeEditor {
 
     struct FloatConstantNode :public IConstantInterpreter {
         INTERPRET_BEGIN(0, 1)
-            return "%C";
+            if (variableName.empty())return std::to_string(number.fVal[0]);
+            else  return variableName;
         INTERPRET_END
     };
 
     struct FloatVariableNode :public IVariableInterpreter {
         INTERPRET_BEGIN(0, 1)
-            return "%V";
+            if (variableName.empty())return std::to_string(number.fVal[0]);
+            else  return variableName;
         INTERPRET_END
     };
 

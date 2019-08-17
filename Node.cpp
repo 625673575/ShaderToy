@@ -5,6 +5,30 @@ namespace ShaderNodeEditor {
         size_t num = std::count(p.begin(), p.end(), '}');
         return num;
     }
+    void string_replace(std::string& strBig, const std::string& strsrc, const std::string& strdst)
+    {
+        std::string::size_type pos = 0;
+        std::string::size_type srclen = strsrc.size();
+        std::string::size_type dstlen = strdst.size();
+
+        while ((pos = strBig.find(strsrc, pos)) != std::string::npos)
+        {
+            strBig.replace(pos, srclen, strdst);
+            pos += dstlen;
+        }
+    }
+
+    std::string formatToken(const std::string& t, const std::vector<std::string>& params) {
+        std::string op = t;
+        char x[4] = "{0}";
+        for (size_t i = 0; i < params.size(); ++i) {
+            x[1] = i + '0';
+            std::string is(x);
+            string_replace(op, is, params[i]);
+        }
+        return op;
+    }
+
     void Graph::evaluate(const size_t root_node) {
         // this function does a depth-first evaluation of the graph
         // the nodes are evaluated post-order using two stacks.
@@ -38,9 +62,10 @@ namespace ShaderNodeEditor {
             switch (nodes_[node]->type)
             {
             case Node_Number:
+            {
                 token.push("%N");
-                OutputDebugStringA(" Number ");
-                break;
+            }
+            break;
             case Node_NumberExpression:
                 //    if (nodes_[node]->Id.params.empty()) {
                 //    OutputDebugStringA((" Expression Param Empty" + std::to_string(nodes_[node]->number.fVal[0])).c_str());
@@ -58,22 +83,28 @@ namespace ShaderNodeEditor {
                 if (paramCount > 0) {
                     //参数多于栈中的,则需要从Id.params里面找添补的
                     if (paramCount > stackSize) {
-
+                        //error
+                        throw;
                     }
                     //参数小于栈中的,则取后面的几个,同时参数顺序按照先进的顺序排列
                     else {
                         size_t pc = paramCount;
                         std::vector<std::string> par(pc);
                         while (pc > 0) {
-                            par[--pc] = token.top(); token.pop();
+                            --pc;
+                            auto top = token.top();
+                            if (top == "%N") {
+                                top = std::to_string(nodes_[node]->Id.params[pc].value.fVal[0]);//此处改为调用函数获取,根据值类型决定构造函数
+                            }
+                            par[pc] = top;
+                            token.pop();
                         }
                         //替换参数后压栈
+                        std::string snippetTrans = formatToken(snippet, par);
+                        token.push(snippetTrans);
                     }
-                    token.push("转化后的snippet");
                 }
                 else {
-                    //snippet还是要处理替换Constant,Variable之类的
-
                     token.push(snippet);
                 }
 
@@ -89,6 +120,12 @@ namespace ShaderNodeEditor {
             default:
                 assert("Invalid enum value!");
             }
+        }
+        assert(token.size() == 1);
+        while (!token.empty()) {
+            OutputDebugStringA("\nToken : ");
+            OutputDebugStringA(token.top().c_str());
+            token.pop();
         }
         OutputDebugStringA("\n");
     }
