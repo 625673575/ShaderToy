@@ -68,5 +68,6 @@ namespace ShaderNodeEditor {
         void addPopupItem_Substract() { addNode<SubNode, 2>(); };
         void addPopupItem_Multiply() { addNode<MultiplyNode, 2>(); };
         void addPopupItem_Divide() { addNode<DivideNode, 2>(); };
+        void addPopupItem_MultiplyAdd() { addNode<MultiplyAddNode, 3>(); };
     };
 }

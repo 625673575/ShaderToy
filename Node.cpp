@@ -38,7 +38,8 @@ namespace ShaderNodeEditor {
             switch (nodes_[node]->type)
             {
             case Node_Number:
-                //OutputDebugStringA((" Number " + std::to_string(nodes_[node]->number.fVal[0])).c_str());
+                token.push("%N");
+                OutputDebugStringA(" Number ");
                 break;
             case Node_NumberExpression:
                 //    if (nodes_[node]->Id.params.empty()) {
@@ -63,7 +64,7 @@ namespace ShaderNodeEditor {
                     else {
                         size_t pc = paramCount;
                         std::vector<std::string> par(pc);
-                        while (pc >= 0) {
+                        while (pc > 0) {
                             par[--pc] = token.top(); token.pop();
                         }
                         //替换参数后压栈

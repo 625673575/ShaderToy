@@ -23,7 +23,7 @@ namespace ShaderNodeEditor {
     const std::array<NodeOutputPinMeta, 1> TimeNode::OutputPinMeta = {"Time"};
 
     NODE_PROPERTY(SinNode, Sin, Math , return sin(x), (.0f, .0f, 1.0f, 1.0f));
-    const std::array<NodeInputPinMeta, 1> SinNode::InputPinMeta = { NodeInputPinMeta{"",PinValueType::Demical_Float} };
+    const std::array<NodeInputPinMeta, 1> SinNode::InputPinMeta = { NodeInputPinMeta{"Input",PinValueType::Demical_Float} };
     const std::array<NodeOutputPinMeta, 1> SinNode::OutputPinMeta = { "Result" };
 
     NODE_PROPERTY(AddNode, Add, Math, return x + y, (1.0f, 1.0f, 1.0f, 1.0f));
@@ -41,5 +41,9 @@ namespace ShaderNodeEditor {
     NODE_PROPERTY(DivideNode, Divide, Math, return x / y, (1.0f, .0f, 0.5f, 1.0f));
     const std::array<NodeInputPinMeta, 2> DivideNode::InputPinMeta = { NodeInputPinMeta{"Left",PinValueType::Demical_Float},NodeInputPinMeta{"Right",PinValueType::Demical_Float} };
     const std::array<NodeOutputPinMeta, 1> DivideNode::OutputPinMeta = { "Result" };
+
+    NODE_PROPERTY(MultiplyAddNode, MultiplyAdd, Math, return x * y + z, (1.0f, .0f, 0.5f, 1.0f));
+    const std::array<NodeInputPinMeta, 3> MultiplyAddNode::InputPinMeta = { NodeInputPinMeta{"Mul Left",PinValueType::Demical_Float},NodeInputPinMeta{"Mul Right",PinValueType::Demical_Float},NodeInputPinMeta{"Add Right",PinValueType::Demical_Float} };
+    const std::array<NodeOutputPinMeta, 1> MultiplyAddNode::OutputPinMeta = { "Result" };
 
 }

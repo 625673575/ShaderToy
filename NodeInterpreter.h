@@ -67,4 +67,10 @@ namespace ShaderNodeEditor {
             return "({0} / {1})";
         INTERPRET_END
     };
+
+    struct MultiplyAddNode :public IOperationInterpreter {
+        INTERPRET_BEGIN(3, 1)
+            return "(({0} * {1}) + {2})";
+        INTERPRET_END
+    };
 }

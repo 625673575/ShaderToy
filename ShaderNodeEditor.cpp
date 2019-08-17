@@ -22,7 +22,8 @@ namespace ShaderNodeEditor {
                 ADD_POPUP_NODE_ITEM(Add, addPopupItem_Add),
                 ADD_POPUP_NODE_ITEM(Substract, addPopupItem_Substract),
                 ADD_POPUP_NODE_ITEM(Multiply, addPopupItem_Multiply),
-                ADD_POPUP_NODE_ITEM(Divide, addPopupItem_Divide)
+                ADD_POPUP_NODE_ITEM(Divide, addPopupItem_Divide),
+                ADD_POPUP_NODE_ITEM(MultiplyAdd, addPopupItem_MultiplyAdd)
         });
 
     }
