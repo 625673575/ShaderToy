@@ -92,15 +92,14 @@ namespace ShaderNodeEditor {
 
     bool ShaderNodeEditor::find_and_remove_node(size_t id)
     {
-        for (const auto& v : nodes) {
-            for (const auto& node : v.second) {
-                auto iter = std::find_if(node->Id.params.begin(), node->Id.params.end(), [id](NodeParam x) {return x.id == size_t(id); });
-                if (iter != node->Id.params.end())
-                {
-                    graph_.erase_node(*iter);
-                    node->Id.params.erase(iter);
-                    return true;
-                }
+        for (auto& v : nodes) {
+            NodeVec& time_nodes_ = v.second;
+            auto iter = std::find_if(time_nodes_.begin(), time_nodes_.end(), [id](NodePtr& x) ->bool {return id == x->Id.op; });
+            if (iter != time_nodes_.end())
+            {
+                graph_.erase_node((*iter)->Id.op);
+                time_nodes_.erase(iter);
+                return true;
             }
         }
         return false;

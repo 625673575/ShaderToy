@@ -322,7 +322,7 @@ namespace ShaderNodeEditor {
         {
             // first, collect all the edges from the adjacency lists
             // since erasing an edge invalidates the adjacency list iterators
-            StaticVector<size_t, 6> edges_to_erase;
+            std::vector<size_t> edges_to_erase;
             for (size_t edge : edges_from_node_[node_id])
             {
                 edges_to_erase.push_back(edge);
