@@ -100,7 +100,7 @@ void ShaderStudio::ShaderToyDocument::DoQueueClose()
 {
     for (auto& v : mTextDocuments) {
         if (v.second.IsDirty) {
-            MsgBoxButton btn = Falcor::msgBox("是否需要保存" + v.first + "的改动", MsgBoxType::OkCancel);
+            MsgBoxButton btn = Falcor::msgBox("Should save the change of " + v.first , MsgBoxType::OkCancel);
             if (btn == MsgBoxButton::Ok) {
                 v.second.DoSave();
             }

@@ -327,6 +327,7 @@ namespace ShaderNodeEditor {
             {
                 edges_to_erase.push_back(edge);
             }
+
             for (size_t edge : edges_to_node_[node_id])
             {
                 edges_to_erase.push_back(edge);

@@ -79,7 +79,7 @@ namespace ShaderNodeEditor {
         if (ImGui::Button("Eval")) {
             graph_.evaluate(output_nodes_[0u].out);
         }
-        
+
         imnodes::BeginNodeEditor();
         showOutputNodes();
         showCommonNodes();
@@ -97,6 +97,23 @@ namespace ShaderNodeEditor {
             auto iter = std::find_if(time_nodes_.begin(), time_nodes_.end(), [id](NodePtr& x) ->bool {return id == x->Id.op; });
             if (iter != time_nodes_.end())
             {
+                for (auto& param : (*iter)->Id.params) {
+                    auto edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param](auto& x) {return x.second.from == param.id; });
+                    if (edge_iter != graph_.end_edges()) {
+                        auto node = graph_.node(edge_iter->second.from);
+                        if (node->type == Node_NumberExpression) {
+                            node->type = Node_Number;
+                            graph_.erase_edge(edge_iter->first);
+                        }
+                    }
+
+                    edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param](auto& x) {return x.second.to == param.id; });
+                    if (edge_iter != graph_.end_edges()) {
+                        auto node = graph_.node(edge_iter->second.to);
+                            node->type = Node_Operation;
+                        graph_.erase_node(edge_iter->second.to);
+                    }
+                }
                 graph_.erase_node((*iter)->Id.op);
                 time_nodes_.erase(iter);
                 return true;
