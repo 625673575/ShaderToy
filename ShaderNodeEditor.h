@@ -3,8 +3,11 @@
 namespace ShaderNodeEditor {
     class ShaderNodeEditor
     {
+    public:
+        using NodePtr = std::shared_ptr<INodeInterpreter>;
+        using NodeVec = std::vector<NodePtr>;
         template<typename NODE_T, size_t _COUNT>
-        void addNode() {
+        NodePtr addNode() {
             NodePtr op_ptr = std::make_shared<NODE_T>();
             op_ptr->Id.op = graph_.add_node(op_ptr);
             op_ptr->type = NodeType::Node_Operation;
@@ -13,26 +16,26 @@ namespace ShaderNodeEditor {
                 NodePtr value_ptr = std::make_shared<FloatVariableNode>();
                 value_ptr->type = NodeType::Node_Number;
                 size_t node_id = graph_.add_node(value_ptr);
-                
+
                 op_ptr->Id.params.push_back(node_id);
                 graph_.add_edge(op_ptr->Id.op, op_ptr->Id.params[i].id);
             }
 
             imnodes::SetNodePos(op_ptr->Id.op, click_pos);
             addNodeToGraph(NODE_T::Name, op_ptr);//放在最后，因为被 std::move 掉了
+            return op_ptr;
         }
         template<typename NODE_T>
-        void addNode() {
+        NodePtr addNode() {
             NodePtr op_ptr = std::make_shared<NODE_T>();
             op_ptr->Id.op = graph_.add_node(op_ptr);
             op_ptr->type = NodeType::Node_Operation;
 
             imnodes::SetNodePos(op_ptr->Id.op, click_pos);
             addNodeToGraph(NODE_T::Name, op_ptr);//放在最后，因为被 std::move 掉了
+            return op_ptr;
         }
     public:
-        using NodePtr = std::shared_ptr<INodeInterpreter>;
-        using NodeVec = std::vector<NodePtr>;
 
         ShaderNodeEditor() = default;
         ~ShaderNodeEditor() = default;
@@ -60,7 +63,11 @@ namespace ShaderNodeEditor {
         void linkInput();
     private:
         void addOutput();
-        void addPopupItem_VariableFloat() { addNode<FloatVariableNode>(); };
+        void addPopupItem_VariableFloat() {
+            static size_t variable_counter = 0;
+            auto node = addNode<FloatVariableNode>();
+            node->variableName = node->GetCategory() + std::to_string(variable_counter++);
+        };
         void addPopupItem_ConstantFloat() { addNode<FloatConstantNode>(); };
         void addPopupItem_Time() { addNode<TimeNode>(); };
         void addPopupItem_Sine() { addNode<SinNode, 1>(); };

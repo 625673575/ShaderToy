@@ -8,12 +8,16 @@ namespace ShaderNodeEditor {
     void string_replace(std::string& strBig, const std::string& strsrc, const std::string& strdst)
     {
         std::string::size_type pos = 0;
-        std::string::size_type srclen = strsrc.size();
-        std::string::size_type dstlen = strdst.size();
+        std::string dst(strdst);
+        auto dx = strdst.find('\0');
+        if (dx < strdst.length())
+            dst = strdst.substr(0, dx);
+        std::string::size_type srclen = strsrc.length();
+        std::string::size_type dstlen = dst.length();
 
         while ((pos = strBig.find(strsrc, pos)) != std::string::npos)
         {
-            strBig.replace(pos, srclen, strdst);
+            strBig.replace(pos, srclen, dst);
             pos += dstlen;
         }
     }

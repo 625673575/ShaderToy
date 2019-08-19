@@ -205,7 +205,10 @@ namespace ShaderNodeEditor {
         const char* name;
     };
     struct INodeInterpreter {
-        INodeInterpreter() = default;
+        INodeInterpreter() {
+            std::memset(number.fVal, 0, sizeof(number.fVal));
+            variableName.reserve(255);
+        };
         virtual ~INodeInterpreter() = default;
         INodeInterpreter& operator=(const INodeInterpreter&) = default;
         INodeInterpreter(const INodeInterpreter&) = default;
@@ -213,6 +216,7 @@ namespace ShaderNodeEditor {
         virtual const NodeInputPinMeta& GetInputMetaInfo(size_t i) const = 0;
         virtual const NodeOutputPinMeta& GetOutputMetaInfo(size_t i) const = 0;
         virtual const char* GetCategory() const = 0;
+        virtual int GetNodeSize()const = 0;
         virtual bool ForceShowNumber() { return false; }
         //如果有变量名,就单独创建一个变量
         std::string variableName;

@@ -6,6 +6,7 @@ namespace ShaderNodeEditor {
     static const char* Name;\
     static const char* Desc;\
     static const char* Category;\
+    static const int NodeSize;\
     static const ImColor Color;
 
 #define INTERPRET_BEGIN(INPUT_COUNT,OUTPUT_COUNT)DECLAR_NODE_STATIC_VAR\
@@ -14,6 +15,7 @@ namespace ShaderNodeEditor {
     const NodeInputPinMeta& GetInputMetaInfo(size_t i)const override {return InputPinMeta[i];}\
     const NodeOutputPinMeta& GetOutputMetaInfo(size_t i)const override {return OutputPinMeta[i];}\
     const char* GetCategory()const override{return Category;}\
+    int GetNodeSize()const override{return NodeSize;}\
     std::string Interpret()override\
 { assert(Id.params.size() == INPUT_COUNT);
 
@@ -23,14 +25,14 @@ namespace ShaderNodeEditor {
     struct FloatConstantNode :public IConstantInterpreter {
         INTERPRET_BEGIN(0, 1)
             if (variableName.empty())return std::to_string(number.fVal[0]);
-            else  return variableName;
+            else return variableName;
         INTERPRET_END
     };
 
     struct FloatVariableNode :public IVariableInterpreter {
         INTERPRET_BEGIN(0, 1)
             if (variableName.empty())return std::to_string(number.fVal[0]);
-            else  return variableName;
+            else return variableName;
         INTERPRET_END
     };
 

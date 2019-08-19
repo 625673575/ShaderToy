@@ -84,7 +84,6 @@ namespace ShaderNodeEditor {
         showOutputNodes();
         showCommonNodes();
         showLinks();
-        showPopupMenu();
         imnodes::EndNodeEditor();
         linkInput();
         ImGui::End();
@@ -194,15 +193,26 @@ namespace ShaderNodeEditor {
         for (auto& v : nodes)
         {
             auto& node = v->Id;
-            const float node_width = 100.0f;
             imnodes::BeginNode(node.op);
             imnodes::Name(name.c_str());
 
-            if (graph_.node(node.op)->ForceShowNumber()) {
+            auto op_node = graph_.node(node.op);
+            const int node_width = op_node->GetNodeSize();
+            const char* cate = op_node->GetCategory();
+
+            if (cate == std::string("Variable")) {
                 imnodes::BeginInputAttribute(int(node.op));
-                ImGui::PushItemWidth(64);
+                ImGui::PushItemWidth(node_width);
+                ImGui::InputText("Name", op_node->variableName.data(), 255);
+                ImGui::PopItemWidth();
+                imnodes::EndAttribute();
+            }
+            if (op_node->ForceShowNumber()) {
+                imnodes::BeginInputAttribute(int(node.op));
+                ImGui::Text(op_node->GetCategory());
+                ImGui::PushItemWidth(80);
                 ImGui::DragFloat(
-                    "##hidelabel",
+                    "Value",
                     &graph_.node(node.op)->number.fVal[0],
                     0.01f,
                     0.f,
@@ -250,15 +260,8 @@ namespace ShaderNodeEditor {
 
     void ShaderNodeEditor::showPopupMenu()
     {
-        const bool open_popup = ImGui::IsMouseClicked(1);
-
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f, 8.f));
 
-        if (!ImGui::IsAnyItemHovered() && ImGui::IsAnyWindowHovered() &&
-            open_popup)
-        {
-            ImGui::OpenPopup("add node");
-        }
         if (ImGui::BeginPopup("add node"))
         {
             click_pos = ImGui::GetMousePosOnOpeningCurrentPopup();
@@ -292,6 +295,7 @@ namespace ShaderNodeEditor {
                 assert(node->type == Node_NumberExpression);
                 node->type = Node_Number;
                 graph_.erase_edge(size_t(link_selected));
+                return;
             }
         }
 
@@ -302,11 +306,13 @@ namespace ShaderNodeEditor {
             if (ImGui::IsKeyReleased(ImGui::GetIO().KeyMap[ImGuiKey_X]))
             {
                 find_and_remove_node(node_selected);
+                return;
             }
         }
 
         Id link_start, link_end;
         int start, end;
+        static bool hasStartLink = false;
         if (imnodes::IsLinkCreated(&start, &end))
         {
             link_start.id = start, link_end.id = end;
@@ -342,7 +348,22 @@ namespace ShaderNodeEditor {
                     ? Node_NumberExpression
                     : node_from->type;
             }
+            hasStartLink = false;
+            return;
         }
+        if (!hasStartLink && imnodes::IsLinkStarted(&start))
+        {
+            hasStartLink = true;
+            return;
+        }
+        const bool rightclick_popup = ImGui::IsMouseClicked(1);
+        if ((!ImGui::IsAnyItemHovered() && ImGui::IsAnyWindowHovered() && rightclick_popup)
+            || (hasStartLink && imnodes::IsLinkDropped())) {
+            hasStartLink = false;
+            ImGui::OpenPopup("add node");
+        }
+
+        showPopupMenu();
     }
 
     void ShaderNodeEditor::addOutput()
