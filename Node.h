@@ -315,8 +315,8 @@ namespace ShaderNodeEditor {
             return id;
         }
 
-        void erase_node(const NodeParam param) {
-            return erase_node(param.id);
+        void erase_node(const NodeParam& param) {
+            erase_node(param.id);
         }
         void erase_node(const size_t node_id)
         {
