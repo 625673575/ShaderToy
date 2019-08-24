@@ -20,7 +20,8 @@ namespace ShaderNodeEditor {
         });
         popupNodesFunctions.emplace("Misc", std::map<std::string, std::function<void()>>{
             ADD_POPUP_NODE_ITEM(Time, addPopupItem_Time),
-                ADD_POPUP_NODE_ITEM(Mask, addPopupItem_Mask)
+                ADD_POPUP_NODE_ITEM(Mask, addPopupItem_Mask),
+                ADD_POPUP_NODE_ITEM(AppendChannel, addPopupItem_AppendChannel)
         });
         popupNodesFunctions.emplace("Math", std::map<std::string, std::function<void()>>{
             ADD_POPUP_NODE_ITEM(Sine, addPopupItem_Sine),
@@ -358,15 +359,20 @@ namespace ShaderNodeEditor {
         }
 
         static Id node_selected;
-        drawNodeProperty(graph_.node(node_selected.id));
+        if (graph_.has_node(node_selected.id)) {
+            drawNodeProperty(graph_.node(node_selected.id));
+        }
         if (int selectedId = -1; imnodes::IsNodeSelected(&selectedId))
         {
             if (selectedId != node_selected.id) {
-                graph_.node(node_selected.id)->OnNodeClicked();
+                if (graph_.has_node(node_selected.id)) {
+                    graph_.node(node_selected.id)->OnNodeClicked();
+                }
             }
             node_selected.id = selectedId;
             if (ImGui::IsKeyReleased(ImGui::GetIO().KeyMap[ImGuiKey_X]))
             {
+                graph_.node(node_selected.id)->OnNodeDestroy();
                 findRemoveNode(node_selected);
                 return;
             }

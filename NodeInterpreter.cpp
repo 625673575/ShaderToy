@@ -3,6 +3,11 @@
 namespace ShaderNodeEditor {
     size_t VariableCount = 1;
 
+    const char* ShaderNodeEditor::xyzw[4] = { "x","y","z","w" };
+    const char* ShaderNodeEditor::XYZW[4] = { "x","y","z","w" };
+    const char* ShaderNodeEditor::rgba[4] = { "r","g","b","a" };
+    const char* ShaderNodeEditor::RGBA[4] = { "R","G","B","A" };
+
     PinValueType INodeInterpreter::MergeOutputType(const std::vector<PinValueType>& p)
     {
 
@@ -40,9 +45,23 @@ namespace ShaderNodeEditor {
     {
         return ImGui::DragInt(label, value,1.0,min_val,max_val);
     }
-    bool INodeInterpreter::drawEnumVariable(int* size, std::vector<std::string> labels)
+    int INodeInterpreter::drawEnumVariable(int size, const char* items[], int init_label)
     {
-        return false;
+        const char* current_item = items[init_label];
+        if (ImGui::BeginCombo("##combo", current_item)) // The second parameter is the label previewed before opening the combo.
+        {
+            for (int n = 0; n < size; n++)
+            {
+                bool is_selected = (current_item == items[n]); // You can store your selection however you want, outside or inside your objects
+                if (ImGui::Selectable(items[n], is_selected)) {
+                    current_item = items[n];
+                    ImGui::EndCombo();
+                    return n;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        return -1;
     }
 #define NODE_PROPERTY(CLASS,NAME,CATEGORY,DESC,COLOR,SIZE)\
     std::map<std::string, VariableWithDefault<std::string>> CLASS::StringMetaMap = { {"Name",#NAME},{"Desc",#DESC},{"Category",#CATEGORY} };\
@@ -104,6 +123,10 @@ namespace ShaderNodeEditor {
     NODE_PROPERTY(IntermediateVariableNode, IntermediateVariable, Misc, create intermediate variable, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 1> IntermediateVariableNode::InputPinMeta = { NodeInputPinMeta{"Input(Vector)",PinValueType::Demical_Float} };
     const std::array<NodeOutputPinMeta, 1> IntermediateVariableNode::OutputPinMeta = { "Result" };
+
+    NODE_PROPERTY(AppendChannelNode, AppendChannel, Misc, append channel, (1.0f, .0f, 0.5f, 1.0f), 100);
+    const std::array<NodeInputPinMeta, 4> AppendChannelNode::InputPinMeta = { NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float} };
+    const std::array<NodeOutputPinMeta, 1> AppendChannelNode::OutputPinMeta = { "Result" };
 
     NODE_PROPERTY(MaskNode, Mask, Misc, get specific channel, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 1> MaskNode::InputPinMeta = { NodeInputPinMeta{"Input(Vector)",PinValueType::Demical_Float} };

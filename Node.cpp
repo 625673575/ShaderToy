@@ -1,6 +1,5 @@
 #include "Node.h"
 #include "NodeInterpreter.h"
-#include <Windows.h>
 namespace ShaderNodeEditor {
     size_t getInnerParamCount(const std::string& p) {
         size_t num = std::count(p.begin(), p.end(), '}');

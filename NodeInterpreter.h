@@ -3,10 +3,10 @@
 #include "Externals/dear_imgui/imgui.h"
 namespace ShaderNodeEditor {
 
-    const char xyzw[4][2] = { "x","y","z","w" };
-    const char XYZW[4][2] = { "x","y","z","w" };
-    const char rgba[4][2] = { "r","g","b","a" };
-    const char RGBA[4][2] = { "R","G","B","A" };
+    extern const char* xyzw[4];
+    extern const char* XYZW[4];
+    extern const char* rgba[4];
+    extern const char* RGBA[4];
 
     struct NodeInputPinMeta {
         const char* name;
@@ -31,11 +31,13 @@ namespace ShaderNodeEditor {
         virtual const char* GetName()const = 0;
         virtual const char* GetDesc()const = 0;
         virtual int GetNodeSize()const = 0;
+        //event
         virtual void OnInspectGUI() {}
         virtual void OnNodeClicked() {}
         virtual void OnNodeCreate() {}
         virtual void OnNodeDestroy() {}
         virtual void OnPropertyChanged() {}
+
         virtual bool ForceShowNumber() { return false; }
         virtual bool ForceHideParamNumber() { return false; }
         virtual bool IsValid() { return true; }
@@ -46,7 +48,7 @@ namespace ShaderNodeEditor {
         bool drawVectorVariable(int size) { return drawVectorVariable(size, number.fVal); }
         bool drawVectorVariable(int size, float* data);
         bool drawIntVariable(const char* label, int* value, int min_val, int max_val);
-        bool drawEnumVariable(int* size, std::vector<std::string> labels);
+        int drawEnumVariable(int size, const char* labels[], int init_label = 0);
         //如果有变量名,就单独创建一个变量
         std::string variableName;
         NodeType type;
@@ -235,7 +237,37 @@ namespace ShaderNodeEditor {
     };
 
     struct AppendChannelNode :public IOperationInterpreter {
+        AppendChannelNode() :channel_count(2) {
+            SetRuntimeType(PinValueType::Demical_Float);
+        }
+        int channel_count;
+        void OnInspectGUI()override {
+            if (drawIntVariable("Channel Count", &channel_count, 2, 4)) {
+                OnPropertyChanged();
+            }
+        }
+        void OnPropertyChanged() {
+            changeName();
+        }
+        void changeName() {
+            std::string ChannelName = "AppendChannel Vector" + std::to_string(channel_count);
 
+            StringMetaMap["Name"].set_value(ChannelName);
+        }
+        INTERPRET_BEGIN(4, 1)
+            switch (channel_count)
+            {
+            case 2:
+                return "float2({0},{1})";
+            case 3:
+                return "float3({0},{1},{2})";
+            case 4:
+                return "float4({0},{1},{2},{3})";
+            default:
+                break;
+            }
+        return "";
+        INTERPRET_END
     };
 
     //根据RuntimeType决定返回类型
@@ -287,9 +319,22 @@ namespace ShaderNodeEditor {
             StringMetaMap["Name"].set_value(MaskName);
         }
         void OnInspectGUI()override {
-            if (drawIntVariable("Mask", &mask_idx, 0, 3)) {
-                OnPropertyChanged();
+            if (auto x = drawEnumVariable(4, RGBA, mask_idx); x > -1)
+            {
+                if (mask_idx != x) {
+                    mask_idx = x;
+                    OnPropertyChanged();
+                }
             }
+        }
+        void OnNodeClicked()override {
+            OutputDebugStringA(" Node Clicked ");
+        }
+        void OnNodeCreate()override {
+            OutputDebugStringA(" Node Create ");
+        }
+        void OnNodeDestroy()override {
+            OutputDebugStringA(" Node Destroy ");
         }
         FORCE_HIDE_PARAM
             INTERPRET_BEGIN(1, 1)

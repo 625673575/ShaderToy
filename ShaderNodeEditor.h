@@ -38,6 +38,7 @@ namespace ShaderNodeEditor {
             }
 
             addNodeToGraph(NODE_T::StringMetaMap["Name"].get_default(), op_ptr);//放在最后，因为被 std::move 掉了
+            op_ptr->OnNodeCreate();
             return op_ptr;
         }
         template<typename NODE_T>
@@ -103,6 +104,7 @@ namespace ShaderNodeEditor {
         void addPopupItem_Divide() { addNode<DivideNode, 2>(); };
         void addPopupItem_MultiplyAdd() { addNode<MultiplyAddNode, 3>(); };
 
+        void addPopupItem_AppendChannel() { addNode<AppendChannelNode, 4>(); };
         void addPopupItem_Mask() { addNode<MaskNode, 1>(); };
     };
 }

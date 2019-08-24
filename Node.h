@@ -10,6 +10,7 @@
 #include <utility>
 #include <functional>
 #include <string>
+#include <Windows.h>
 namespace ShaderNodeEditor {
     struct INodeInterpreter;
 
@@ -256,6 +257,11 @@ namespace ShaderNodeEditor {
         inline std::shared_ptr<INodeInterpreter> node(const size_t node_id)
         {
             return static_cast<const Graph*>(this)->node(node_id);
+        }
+
+        inline bool has_node(const size_t node_id) const
+        {
+            return nodes_.find(node_id) != nodes_.end();
         }
         inline const std::shared_ptr<INodeInterpreter>& node(const size_t node_id) const
         {
