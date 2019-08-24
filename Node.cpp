@@ -1,5 +1,6 @@
 #include "Node.h"
-
+#include "NodeInterpreter.h"
+#include <Windows.h>
 namespace ShaderNodeEditor {
     size_t getInnerParamCount(const std::string& p) {
         size_t num = std::count(p.begin(), p.end(), '}');
@@ -25,7 +26,7 @@ namespace ShaderNodeEditor {
     std::string formatToken(const std::string& t, const std::vector<std::string>& params) {
         std::string op = t;
         char x[4] = "{0}";
-        for (size_t i = 0; i < params.size(); ++i) {
+        for (char i = 0; i < params.size(); ++i) {
             x[1] = i + '0';
             std::string is(x);
             string_replace(op, is, params[i]);
@@ -133,4 +134,5 @@ namespace ShaderNodeEditor {
         }
         OutputDebugStringA("\n");
     }
+    
 }

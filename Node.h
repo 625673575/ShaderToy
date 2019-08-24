@@ -10,8 +10,34 @@
 #include <utility>
 #include <functional>
 #include <string>
-#include <Windows.h>
 namespace ShaderNodeEditor {
+    struct INodeInterpreter;
+
+    template<typename T>
+    struct VariableWithDefault {
+        T default_value;
+        T real_value;
+        bool use_default;
+        VariableWithDefault() :use_default(true) {}
+        VariableWithDefault(T in) :default_value(in),use_default(true) {}
+        void set_value(const T& val) { use_default = false; real_value = val; }
+        void set_default() { use_default = true; }
+        const T& get_value() { return use_default ? default_value : real_value; }
+        const T& get_default() { return default_value; }
+    };
+
+    template<>
+    struct VariableWithDefault<std::string> {
+        const char* default_value;
+        std::string real_value;
+        bool use_default = true;
+        VariableWithDefault() :use_default(true),default_value(nullptr) {}
+        VariableWithDefault(const char* in) :default_value(in), use_default(true) {}
+        void set_value(const std::string& val) { use_default = false; real_value = val; }
+        void set_default() { use_default = true; }
+        const char* get_value() { return use_default ? default_value : real_value.c_str(); }
+        const char* get_default() { return default_value; }
+    };
     struct Id
     {
         size_t id;
@@ -44,7 +70,16 @@ namespace ShaderNodeEditor {
         size_t in;
         size_t out;
     };
-    enum PinValueType {
+    enum NodeType
+    {
+        Node_Number,
+        Node_NumberExpression,
+        Node_Operation,
+        Node_Output
+    };
+    enum class PinValueType {
+        Error = -1,
+        None = 0,
         Demical_Float,
         Demical_INT,
         Demical_UINT,
@@ -59,12 +94,14 @@ namespace ShaderNodeEditor {
         INT,
         UINT,
         BOOL,
+        Any
     };
     struct PinValue {
         float fVal[16];
     };
     struct NodeParam {
         NodeParam(size_t _id) :id(_id) {}
+        inline bool operator==(size_t i) const { return id == i; }
         size_t id;
         PinValue value;
         //operator const size_t() const{ return id; }
@@ -74,12 +111,6 @@ namespace ShaderNodeEditor {
         size_t op;
         std::vector<NodeParam> params;
     };
-
-    template<class T>
-    T clamp(T x, T a, T b)
-    {
-        return std::min(b, std::max(x, a));
-    }
 
     // The type T must be POD
     template<class T, size_t N>
@@ -190,57 +221,6 @@ namespace ShaderNodeEditor {
         size_t size_;
     };
 
-    enum NodeType
-    {
-        Node_Number,
-        Node_NumberExpression,
-        Node_Operation,
-        Node_Output
-    };
-    struct NodeInputPinMeta {
-        const char* name;
-        PinValueType pin;
-    };
-    struct NodeOutputPinMeta {
-        const char* name;
-    };
-    struct INodeInterpreter {
-        INodeInterpreter() {
-            std::memset(number.fVal, 0, sizeof(number.fVal));
-            variableName.reserve(255);
-        };
-        virtual ~INodeInterpreter() = default;
-        INodeInterpreter& operator=(const INodeInterpreter&) = default;
-        INodeInterpreter(const INodeInterpreter&) = default;
-        virtual std::string Interpret() = 0;
-        virtual const NodeInputPinMeta& GetInputMetaInfo(size_t i) const = 0;
-        virtual const NodeOutputPinMeta& GetOutputMetaInfo(size_t i) const = 0;
-        virtual const char* GetCategory() const = 0;
-        virtual int GetNodeSize()const = 0;
-        virtual bool ForceShowNumber() { return false; }
-        //如果有变量名,就单独创建一个变量
-        std::string variableName;
-        NodeType type;
-        PinValue number;//constant variable output用
-        NodeId Id;
-    };
-
-#define FORCE_SHOW_NUMBER bool ForceShowNumber()override { return true; }
-    struct IVariableInterpreter :public INodeInterpreter {
-        IVariableInterpreter() = default;
-        virtual ~IVariableInterpreter() = default;
-        FORCE_SHOW_NUMBER
-    };
-    struct IConstantInterpreter :public INodeInterpreter {
-        IConstantInterpreter() = default;
-        virtual ~IConstantInterpreter() = default;
-        FORCE_SHOW_NUMBER
-    };
-    struct IOperationInterpreter :public INodeInterpreter {
-        IOperationInterpreter() = default;
-        virtual ~IOperationInterpreter() = default;
-    };
-
     struct Edge
     {
         // the from, to variables store the node ids of the nodes contained in the
@@ -254,7 +234,9 @@ namespace ShaderNodeEditor {
         Edge() : from(), to() {}
 
         inline size_t opposite(size_t n) const { return n == from ? to : from; }
-    }; class Graph
+    };
+
+    class Graph
     {
     public:
         // the graph has a limited number of adjacencies, simplifies memory usage
@@ -376,7 +358,7 @@ namespace ShaderNodeEditor {
             edges_.erase(edge);
         }
         void evaluate(const size_t root_node);
-        
+
     private:
         size_t current_id_;
         std::unordered_map<size_t, std::shared_ptr<INodeInterpreter>> nodes_;
