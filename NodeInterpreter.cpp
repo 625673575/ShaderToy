@@ -31,7 +31,7 @@ namespace ShaderNodeEditor {
         bool changed = false;
         for (int i = 0; i < size; i++) {
             ImGui::PushItemWidth(80);
-            changed |=  ImGui::DragFloat(
+            changed |= ImGui::DragFloat(
                 xyzw[i],
                 &data[i],
                 0.01f,
@@ -41,16 +41,16 @@ namespace ShaderNodeEditor {
         }
         return changed;
     }
-    bool INodeInterpreter::drawDragIntVariable(const char* label,int* value, int min_val, int max_val)
+    bool INodeInterpreter::drawDragIntVariable(const char* label, int* value, int min_val, int max_val)
     {
-        return ImGui::DragInt(label, value,1.0,min_val,max_val);
+        return ImGui::DragInt(label, value, 1.0, min_val, max_val);
     }
     bool INodeInterpreter::drawUpdownIntVariable(const char* label, int* value, int min_val, int max_val)
     {
         const int step = 1;
-        bool r= ImGui::InputScalar(label, ImGuiDataType_S64, value, &step , NULL, "%d");
-        if (*value > max_val) { *value = max_val; r = false; }
-        if (*value < min_val) { *value = min_val; r = false; }
+        bool r = ImGui::InputScalar(label, ImGuiDataType_S64, value, &step, NULL, "%d");
+        if (r && *value > max_val) { *value = max_val; r = false; }
+        if (r && *value < min_val) { *value = min_val; r = false; }
         return r;
     }
     int INodeInterpreter::drawEnumVariable(int size, const char* items[], int init_label)
@@ -138,6 +138,6 @@ namespace ShaderNodeEditor {
 
     NODE_PROPERTY(MaskNode, Mask, Misc, get specific channel, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 1> MaskNode::InputPinMeta = { NodeInputPinMeta{"Input(Vector)",PinValueType::Demical_Float} };
-    const std::array<NodeOutputPinMeta, 1> MaskNode::OutputPinMeta = { "Result"};
+    const std::array<NodeOutputPinMeta, 1> MaskNode::OutputPinMeta = { "Result" };
 
 }

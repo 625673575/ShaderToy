@@ -134,6 +134,32 @@ namespace ShaderNodeEditor {
         return false;
     }
 
+    bool ShaderNodeEditor::updateEdge(NodePtr& p)
+    {
+        bool isUpdate = false;
+        if (p->needUpdateEdge) {
+            //删除多于的节点连接
+            OutputDebugStringA("need update edge");
+            for (auto& param : p->Id.params) {
+                if (!param.value->IsValid()) {
+                    auto param_id = param.id;
+                    auto edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param_id](auto& x) {return x.second.from == param_id; });
+                    if (edge_iter != graph_.end_edges()) {
+                        auto node = graph_.node(edge_iter->second.from);
+                        if (node->type == Node_NumberExpression) {
+                            node->type = Node_Number;
+                            graph_.erase_edge(edge_iter->first);
+                            isUpdate = true;
+                        }
+                    }
+                }
+            }
+
+            p->needUpdateEdge = false;
+        }
+        return isUpdate;
+    }
+
     NodePtr ShaderNodeEditor::findOpNodeByInput(size_t from_id)
     {
         for (auto& op : nodes) {
@@ -251,6 +277,8 @@ namespace ShaderNodeEditor {
     {
         for (auto& v : nodes)
         {
+            updateEdge(v);
+
             auto& node = v->Id;
             imnodes::BeginNode(node.op);
             imnodes::Name(v->GetName());

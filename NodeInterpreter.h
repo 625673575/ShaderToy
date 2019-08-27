@@ -16,7 +16,7 @@ namespace ShaderNodeEditor {
         const char* name;
     };
     struct INodeInterpreter {
-        INodeInterpreter() {
+        INodeInterpreter():needUpdateEdge(false) {
             std::memset(number.fVal, 0, sizeof(number.fVal));
             variableName.reserve(255);
         };
@@ -56,6 +56,7 @@ namespace ShaderNodeEditor {
         PinValue number;//constant variable output用
         PinValueType runtimeValueType;
         NodeId Id;
+        bool needUpdateEdge;//通知graph是否需要更新，在减少Input节点数目的时候需要处理删除连接
     };
 
     using NodePtr = std::shared_ptr<INodeInterpreter>;
@@ -251,6 +252,7 @@ namespace ShaderNodeEditor {
         void OnPropertyChanged() {
             changeName();
             changeParamNodeValid();
+            needUpdateEdge = true;
         }
         void changeName() {
             std::string ChannelName = "AppendChannel Vector" + std::to_string(channel_count);

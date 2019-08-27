@@ -64,6 +64,8 @@ namespace ShaderNodeEditor {
         bool removeNodeFromGraph(const std::string& node_name, size_t id);
         bool removeOutputNodeFromGraph(size_t id);
         bool findRemoveNode(size_t id);
+        //更新Input Node变化有些节点需要删除
+        bool updateEdge(NodePtr& p);
         NodePtr findOpNodeByInput(size_t from_id);
     private:
         static size_t variable_counter;
