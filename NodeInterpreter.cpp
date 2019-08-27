@@ -41,9 +41,17 @@ namespace ShaderNodeEditor {
         }
         return changed;
     }
-    bool INodeInterpreter::drawIntVariable(const char* label,int* value, int min_val, int max_val)
+    bool INodeInterpreter::drawDragIntVariable(const char* label,int* value, int min_val, int max_val)
     {
         return ImGui::DragInt(label, value,1.0,min_val,max_val);
+    }
+    bool INodeInterpreter::drawUpdownIntVariable(const char* label, int* value, int min_val, int max_val)
+    {
+        const int step = 1;
+        bool r= ImGui::InputScalar(label, ImGuiDataType_S64, value, &step , NULL, "%d");
+        if (*value > max_val) { *value = max_val; r = false; }
+        if (*value < min_val) { *value = min_val; r = false; }
+        return r;
     }
     int INodeInterpreter::drawEnumVariable(int size, const char* items[], int init_label)
     {

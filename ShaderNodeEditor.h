@@ -15,7 +15,7 @@ namespace ShaderNodeEditor {
             value_ptr->type = NodeType::Node_Number;
             size_t node_id = graph_.add_node(value_ptr);
 
-            op_ptr->Id.params.push_back(node_id);
+            op_ptr->Id.params.emplace_back(node_id,value_ptr);
             graph_.add_edge(op_ptr->Id.op, op_ptr->Id.params[i].id);
         }
 
@@ -33,7 +33,7 @@ namespace ShaderNodeEditor {
                 value_ptr->type = NodeType::Node_Number;
                 size_t node_id = graph_.add_node(value_ptr);
 
-                op_ptr->Id.params.push_back(node_id);
+                op_ptr->Id.params.emplace_back(node_id, value_ptr);
                 graph_.add_edge(op_ptr->Id.op, op_ptr->Id.params[i].id);
             }
 

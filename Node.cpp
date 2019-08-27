@@ -1,11 +1,12 @@
 #include "Node.h"
 #include "NodeInterpreter.h"
 namespace ShaderNodeEditor {
-    size_t getInnerParamCount(const std::string& p) {
+    inline size_t getInnerParamCount(const std::string& p) {
         size_t num = std::count(p.begin(), p.end(), '}');
         return num;
     }
-    void string_replace(std::string& strBig, const std::string& strsrc, const std::string& strdst)
+
+    inline void string_replace(std::string& strBig, const std::string& strsrc, const std::string& strdst)
     {
         std::string::size_type pos = 0;
         std::string dst(strdst);
@@ -22,7 +23,7 @@ namespace ShaderNodeEditor {
         }
     }
 
-    std::string formatToken(const std::string& t, const std::vector<std::string>& params) {
+    inline std::string formatToken(const std::string& t, const std::vector<std::string>& params) {
         std::string op = t;
         char x[4] = "{0}";
         for (char i = 0; i < params.size(); ++i) {
@@ -63,7 +64,11 @@ namespace ShaderNodeEditor {
         {
             const size_t node = postorder.top();
             postorder.pop();
-            switch (nodes_[node]->type)
+            auto& cur_node = nodes_[node];
+            if (!cur_node->IsValid()) {
+                continue;
+            }
+            switch (cur_node->type)
             {
             case Node_Number:
             {
@@ -98,7 +103,7 @@ namespace ShaderNodeEditor {
                             --pc;
                             auto top = token.top();
                             if (top == "%N") {
-                                top = std::to_string(nodes_[node]->Id.params[pc].value.fVal[0]);//此处改为调用函数获取,根据值类型决定构造函数
+                                top = std::to_string(nodes_[node]->Id.params[pc].value->number.fVal[0]);//此处改为调用函数获取,根据值类型决定构造函数
                             }
                             par[pc] = top;
                             token.pop();
@@ -113,7 +118,7 @@ namespace ShaderNodeEditor {
                 }
 
                 for (auto& v : nodes_[node]->Id.params) {
-                    OutputDebugStringA(std::to_string(v.value.fVal[0]).c_str());
+                    OutputDebugStringA(std::to_string(v.value->number.fVal[0]).c_str());
                 }
                 OutputDebugStringA(nodes_[node]->Interpret().c_str());
             }

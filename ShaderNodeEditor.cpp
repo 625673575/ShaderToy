@@ -104,8 +104,9 @@ namespace ShaderNodeEditor {
             auto iter = std::find_if(time_nodes_.begin(), time_nodes_.end(), [id](NodePtr& x) ->bool {return id == x->Id.op; });
             if (iter != time_nodes_.end())
             {
-                for (auto& param : (*iter)->Id.params) {
-                    auto edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param](auto& x) {return x.second.from == param.id; });
+                for (const auto& param : (*iter)->Id.params) {
+                    int param_id = param.id;
+                    auto edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param_id](auto& x) {return x.second.from == param_id; });
                     if (edge_iter != graph_.end_edges()) {
                         auto node = graph_.node(edge_iter->second.from);
                         if (node->type == Node_NumberExpression) {
@@ -114,7 +115,7 @@ namespace ShaderNodeEditor {
                         }
                     }
 
-                    edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param](auto& x) {return x.second.to == param.id; });
+                    edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param_id](auto& x) {return x.second.to == param_id; });
                     if (edge_iter != graph_.end_edges()) {
                         auto node = graph_.node(edge_iter->second.to);
                         node->type = Node_Operation;
@@ -199,13 +200,14 @@ namespace ShaderNodeEditor {
                 imnodes::BeginInputAttribute(int(node.in));
                 const float label_width = ImGui::CalcTextSize("in").x;
                 ImGui::Text("in");
-                if (graph_.node(node.in)->type == Node_Number)
+                auto& input = graph_.node(node.in);
+                if (input->type == Node_Number)
                 {
                     ImGui::SameLine();
                     ImGui::PushItemWidth(node_width - label_width);
                     ImGui::DragFloat(
                         "##hidelabel",
-                        &graph_.node(node.in)->number.fVal[0],
+                        static_cast<float*>(input->NumberData()),
                         0.01f,
                         0.f,
                         1.0f);
@@ -253,7 +255,7 @@ namespace ShaderNodeEditor {
             imnodes::BeginNode(node.op);
             imnodes::Name(v->GetName());
 
-            auto op_node = graph_.node(node.op);
+            auto& op_node = v;
             const int node_width = op_node->GetNodeSize();
             const char* cate = op_node->GetCategory();
 
@@ -265,22 +267,24 @@ namespace ShaderNodeEditor {
                 imnodes::EndAttribute();
             }
             if (op_node->ForceShowNumber()) {
-                if (op_node->RuntimeValueType == PinValueType::Float) {
+                if (op_node->runtimeValueType == PinValueType::Float) {
                     drawVariableNumber(op_node->GetCategory(), int(node.op), 1, op_node->number.fVal);
                 }
-                if (op_node->RuntimeValueType == PinValueType::Vector2) {
+                if (op_node->runtimeValueType == PinValueType::Vector2) {
                     drawVariableNumber(op_node->GetCategory(), int(node.op), 2, op_node->number.fVal);
                 }
-                if (op_node->RuntimeValueType == PinValueType::Vector3) {
+                if (op_node->runtimeValueType == PinValueType::Vector3) {
                     drawVariableNumber(op_node->GetCategory(), int(node.op), 3, op_node->number.fVal);
                 }
-                if (op_node->RuntimeValueType == PinValueType::Vector4) {
+                if (op_node->runtimeValueType == PinValueType::Vector4) {
                     drawVariableNumber(op_node->GetCategory(), int(node.op), 4, op_node->number.fVal);
                 }
             }
             size_t i = 0;
             for (NodeParam& input : node.params)
             {
+                if (!input.value->IsValid())continue;
+
                 auto& metaInfo = v->GetInputMetaInfo(i);
                 imnodes::BeginInputAttribute(int(input.id));
                 const float label_width = ImGui::CalcTextSize(metaInfo.name).x;
@@ -292,7 +296,7 @@ namespace ShaderNodeEditor {
                     ImGui::PushItemWidth(node_width - label_width);
                     ImGui::DragFloat(
                         "##hidelabel",
-                        &input.value.fVal[0],
+                        static_cast<float*>(input.value->NumberData()),
                         0.01f,
                         0.f,
                         1.0f);
@@ -416,15 +420,15 @@ namespace ShaderNodeEditor {
                     //判断所有的param是否兼容，如果不兼容则return
                     std::vector<PinValueType> runtimeTypes;
                     for (auto v : opNode->Id.params) {
-                        runtimeTypes.push_back(graph_.node(v.id)->RuntimeValueType);
+                        runtimeTypes.push_back(graph_.node(v.id)->runtimeValueType);
                     }
-                    runtimeTypes.push_back(node_to->RuntimeValueType);//添加即将建立连接的Input类型
+                    runtimeTypes.push_back(node_to->runtimeValueType);//添加即将建立连接的Input类型
                     auto ret = std::remove_if(runtimeTypes.begin(), runtimeTypes.end(), [](PinValueType x) {return x == PinValueType::Any; });//忽略还没有建立连接的Input
                     runtimeTypes.resize(std::distance(runtimeTypes.begin(), ret));
                     ret = std::unique(runtimeTypes.begin(), runtimeTypes.end());
                     runtimeTypes.resize(std::distance(runtimeTypes.begin(), ret));
                     if (runtimeTypes.size() > 1) {
-                        if (runtimeTypes.size() == 2 && (opNode->RuntimeValueType == PinValueType::Any || opNode->RuntimeValueType == PinValueType::Demical_Float)) {
+                        if (runtimeTypes.size() == 2 && (opNode->runtimeValueType == PinValueType::Any || opNode->runtimeValueType == PinValueType::Demical_Float)) {
                             if (runtimeTypes[0] == PinValueType::Float || runtimeTypes[1] == PinValueType::Float) {
                             }
                             else {
@@ -441,12 +445,12 @@ namespace ShaderNodeEditor {
                 node_from->type = node_from->type == Node_Number
                     ? Node_NumberExpression
                     : node_from->type;
-                node_from->SetRuntimeType(node_to->RuntimeValueType);
+                node_from->SetRuntimeType(node_to->runtimeValueType);
 
                 if (opNode != nullptr) {
                     std::vector<PinValueType> pvs;
                     for (auto& p : opNode->Id.params) {
-                        pvs.push_back(graph_.node(p.id)->RuntimeValueType);
+                        pvs.push_back(graph_.node(p.id)->runtimeValueType);
                     }
                     auto merge_type = opNode->MergeOutputType(pvs);
                     if (merge_type != PinValueType::None) {

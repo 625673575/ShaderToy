@@ -13,6 +13,7 @@
 #include <Windows.h>
 namespace ShaderNodeEditor {
     struct INodeInterpreter;
+    using NodePtr = std::shared_ptr<INodeInterpreter>;
 
     template<typename T>
     struct VariableWithDefault {
@@ -101,10 +102,10 @@ namespace ShaderNodeEditor {
         float fVal[16];
     };
     struct NodeParam {
-        NodeParam(size_t _id) :id(_id) {}
+        NodeParam(size_t _id,const NodePtr& node=nullptr) :id(_id),value(node) {}
         inline bool operator==(size_t i) const { return id == i; }
         size_t id;
-        PinValue value;
+        NodePtr value;
         //operator const size_t() const{ return id; }
     };
     struct NodeId

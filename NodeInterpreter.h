@@ -42,17 +42,19 @@ namespace ShaderNodeEditor {
         virtual bool ForceHideParamNumber() { return false; }
         virtual bool IsValid() { return true; }
         virtual std::string GetOutput(size_t i) { assert(OutputPinMeta.size() > 1); return ""; }
-        PinValueType RuntimeValueType;
-        void SetRuntimeType(PinValueType type) { RuntimeValueType = type; };
+        void SetRuntimeType(PinValueType type) { runtimeValueType = type; };
+        void* NumberData() { return &number.fVal[0]; }
         virtual PinValueType MergeOutputType(const std::vector<PinValueType>& p);
         bool drawVectorVariable(int size) { return drawVectorVariable(size, number.fVal); }
         bool drawVectorVariable(int size, float* data);
-        bool drawIntVariable(const char* label, int* value, int min_val, int max_val);
+        bool drawDragIntVariable(const char* label, int* value, int min_val, int max_val);
+        bool drawUpdownIntVariable(const char* label, int* value, int min_val, int max_val);
         int drawEnumVariable(int size, const char* labels[], int init_label = 0);
         //如果有变量名,就单独创建一个变量
         std::string variableName;
         NodeType type;
         PinValue number;//constant variable output用
+        PinValueType runtimeValueType;
         NodeId Id;
     };
 
@@ -73,7 +75,7 @@ namespace ShaderNodeEditor {
     struct IOperationInterpreter :public INodeInterpreter {
         bool isValid;
         bool IsValid()override { return isValid; }
-        IOperationInterpreter() = default;
+        IOperationInterpreter() :isValid(true) {}
         virtual ~IOperationInterpreter() = default;
     };
 
@@ -237,22 +239,29 @@ namespace ShaderNodeEditor {
     };
 
     struct AppendChannelNode :public IOperationInterpreter {
-        AppendChannelNode() :channel_count(2) {
+        AppendChannelNode() :channel_count(4) {
             SetRuntimeType(PinValueType::Demical_Float);
         }
         int channel_count;
         void OnInspectGUI()override {
-            if (drawIntVariable("Channel Count", &channel_count, 2, 4)) {
+            if (drawUpdownIntVariable("Channel Count", &channel_count, 2, 4)) {
                 OnPropertyChanged();
             }
         }
         void OnPropertyChanged() {
             changeName();
+            changeParamNodeValid();
         }
         void changeName() {
             std::string ChannelName = "AppendChannel Vector" + std::to_string(channel_count);
-
             StringMetaMap["Name"].set_value(ChannelName);
+        }
+        void changeParamNodeValid() {
+            for (int i = 0; i < 4; ++i) {
+                if (auto& v = Id.params[i].value; v != nullptr) {
+                    std::static_pointer_cast<IOperationInterpreter>(v)->isValid = i < channel_count;
+                }
+            }
         }
         INTERPRET_BEGIN(4, 1)
             switch (channel_count)
@@ -273,7 +282,7 @@ namespace ShaderNodeEditor {
     //根据RuntimeType决定返回类型
     struct IntermediateVariableNode : public IOperationInterpreter {
         std::string GetTypeName() {
-            switch (RuntimeValueType)
+            switch (runtimeValueType)
             {
             case PinValueType::Float:
                 return "float";
