@@ -20,9 +20,12 @@ namespace ShaderNodeEditor {
         });
         popupNodesFunctions.emplace("Misc", std::map<std::string, std::function<void()>>{
             ADD_POPUP_NODE_ITEM(Time, addPopupItem_Time),
-                ADD_POPUP_NODE_ITEM(Mask, addPopupItem_Mask),
-                ADD_POPUP_NODE_ITEM(AppendChannel, addPopupItem_AppendChannel)
+                ADD_POPUP_NODE_ITEM(Variable, addPopupItem_IntermediateVariable)
         });
+        popupNodesFunctions.emplace("Vector", std::map<std::string, std::function<void()>>{
+                    ADD_POPUP_NODE_ITEM(Mask, addPopupItem_Mask),
+                    ADD_POPUP_NODE_ITEM(AppendChannel, addPopupItem_AppendChannel)
+            });
         popupNodesFunctions.emplace("Math", std::map<std::string, std::function<void()>>{
             ADD_POPUP_NODE_ITEM(Sine, addPopupItem_Sine),
                 ADD_POPUP_NODE_ITEM(Cos, addPopupItem_Cos),
@@ -71,10 +74,13 @@ namespace ShaderNodeEditor {
     {
         ImGui::Begin("Visual Shader Editor", &is_open, ImVec2(1024, 640), 0.9f, ImGuiWindowFlags_NoCollapse);
 
-        if (ImGui::Button("Eval")) {
+        if (ImGui::Button("Eval Diffuse")) {
             graph_.evaluate(output_nodes_[0u]->Id.op);
         }
-
+        if (ImGui::Button("Eval Variable")) {
+            for(auto&v :intermediate_nodes_)
+            graph_.evaluate(v->Id.op);
+        }
         imnodes::BeginNodeEditor();
         showOutputNodes();
         showCommonNodes();
@@ -243,6 +249,50 @@ namespace ShaderNodeEditor {
 
     }
 
+    void ShaderNodeEditor::showIntermediateVariable(NodePtr& ptr)
+    {
+        IntermediateVariableNode* node = static_cast<IntermediateVariableNode*> (ptr.get());
+        const float node_width = node->GetNodeSize();
+        imnodes::PushColorStyle(imnodes::ColorStyle_TitleBar, IM_COL32(11, 109, 191, 255));
+        imnodes::PushColorStyle(imnodes::ColorStyle_TitleBarHovered, IM_COL32(45, 126, 194, 255));
+        imnodes::PushColorStyle(imnodes::ColorStyle_TitleBarSelected, IM_COL32(81, 148, 204, 255));
+        imnodes::BeginNode(node->Id.op);
+        imnodes::Name(node->GetName());
+        ImGui::PushItemWidth(node_width);
+        ImGui::InputText("##hidelable", node->variableName.data(), 255);
+        ImGui::PopItemWidth();
+
+        ImGui::Dummy(ImVec2(node_width, 0.f));
+        {
+            size_t i = 0;
+            for (auto in : node->Id.params) {
+                imnodes::BeginInputAttribute(int(in.id));
+                auto& meta = node->GetInputMetaInfo(i++);
+                const float label_width = ImGui::CalcTextSize(meta.name).x;
+                ImGui::Text(meta.name);
+                auto& input = graph_.node(in.id);
+                if (input->type == Node_Number)
+                {
+                    ImGui::SameLine();
+                    ImGui::PushItemWidth(node_width - label_width);
+                    ImGui::DragFloat(
+                        "##hidelabel",
+                        static_cast<float*>(input->NumberData()),
+                        0.01f,
+                        0.f,
+                        1.0f);
+                    ImGui::PopItemWidth();
+                }
+                imnodes::EndAttribute();
+            }
+        }
+
+        imnodes::EndNode();
+        imnodes::PopColorStyle();
+        imnodes::PopColorStyle();
+        imnodes::PopColorStyle();
+    }
+
     void ShaderNodeEditor::showLinks()
     {
         for (auto iter = graph_.begin_edges(); iter != graph_.end_edges(); ++iter) {
@@ -263,6 +313,9 @@ namespace ShaderNodeEditor {
     {
         for (auto& kv : nodes) {
             showCommonNode(kv.first, kv.second);
+        }
+        for (auto& kv : intermediate_nodes_) {
+            showIntermediateVariable(kv);
         }
     }
 

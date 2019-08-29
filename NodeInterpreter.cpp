@@ -84,11 +84,11 @@ namespace ShaderNodeEditor {
     const std::array<NodeInputPinMeta, 0> NumberNode::InputPinMeta = {};
     const std::array<NodeOutputPinMeta, 1> NumberNode::OutputPinMeta = { "Output(Number)" };
 
-    NODE_PROPERTY(IntermediateVariableNode, IntermediateVariable, IntermediateVariable, intermediate variable, (.0f, .0f, .0f, 1.0f), 60);
+    NODE_PROPERTY(IntermediateVariableNode, IntermediateVariable, Misc, intermediate variable, (.0f, .0f, .0f, 1.0f), 60);
     const std::array<NodeInputPinMeta, 1> IntermediateVariableNode::InputPinMeta = { NodeInputPinMeta{"Input",PinValueType::Any} };
     const std::array<NodeOutputPinMeta, 0> IntermediateVariableNode::OutputPinMeta = { };
 
-    NODE_PROPERTY(OutputDiffuseNode, Diffuse, Diffuse,no light diffuse , (.0f, .0f, .0f, 1.0f), 60);
+    NODE_PROPERTY(OutputDiffuseNode, Diffuse, Output,no light diffuse , (.0f, .0f, .0f, 1.0f), 60);
     const std::array<NodeInputPinMeta, 1> OutputDiffuseNode::InputPinMeta = { NodeInputPinMeta{"Diffuse",PinValueType::Any} };
     const std::array<NodeOutputPinMeta, 0> OutputDiffuseNode::OutputPinMeta = {};
 
@@ -140,11 +140,11 @@ namespace ShaderNodeEditor {
     const std::array<NodeInputPinMeta, 3> MultiplyAddNode::InputPinMeta = { NodeInputPinMeta{"Mul Left",PinValueType::Demical_Float},NodeInputPinMeta{"Mul Right",PinValueType::Demical_Float},NodeInputPinMeta{"Add Right",PinValueType::Demical_Float} };
     const std::array<NodeOutputPinMeta, 1> MultiplyAddNode::OutputPinMeta = { "Result" };
 
-    NODE_PROPERTY(AppendChannelNode, AppendChannel, Misc, append channel, (1.0f, .0f, 0.5f, 1.0f), 100);
+    NODE_PROPERTY(AppendChannelNode, AppendChannel, Vector, append channel, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 4> AppendChannelNode::InputPinMeta = { NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float} };
     const std::array<NodeOutputPinMeta, 1> AppendChannelNode::OutputPinMeta = { "Result" };
 
-    NODE_PROPERTY(MaskNode, Mask, Misc, get specific channel, (1.0f, .0f, 0.5f, 1.0f), 100);
+    NODE_PROPERTY(MaskNode, Mask, Vector, get specific channel, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 1> MaskNode::InputPinMeta = { NodeInputPinMeta{"Input(Vector)",PinValueType::Demical_Float} };
     const std::array<NodeOutputPinMeta, 1> MaskNode::OutputPinMeta = { "Result" };
 

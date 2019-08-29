@@ -67,6 +67,7 @@ namespace ShaderNodeEditor {
         NodePtr findOpNodeByInput(size_t from_id);
     private:
         static size_t variable_counter;
+        std::string autoVariableCount() { return std::to_string(variable_counter++); }
         ImVec2 click_pos;
         bool is_open = true;
         bool is_property_open = true;
@@ -76,24 +77,33 @@ namespace ShaderNodeEditor {
         void drawNodeProperty(NodePtr& ptr);
     private:
         void showOutputNodes();
+        void showIntermediateVariable(NodePtr& ptr);
         void showLinks();
         void showCommonNodes();
         void showCommonNode(const std::string& name, NodeVec& nodes);
         void showPopupMenu();
         void linkInput();
     private:
-        void addOutputDiffuse() { output_nodes_.push_back(addNode<OutputDiffuseNode, 1>(false)); }
-        void addIntermediateVariable() { intermediate_nodes_.push_back(addNode<IntermediateVariableNode, 1>(false)); }
+        void addOutputDiffuse() {
+            output_nodes_.push_back(addNode<OutputDiffuseNode, 1>(false));
+        }
+        void addPopupItem_IntermediateVariable() {
+            auto node = addNode<IntermediateVariableNode, 1>(false);
+            node->variableName = node->GetCategory() + autoVariableCount();
+            intermediate_nodes_.push_back(node);
+        }
         void addPopupItem_VariableFloat() {
             auto node = addNode<FloatVariableNode>();
-            node->variableName = node->GetCategory() + std::to_string(variable_counter++);
+            node->variableName = node->GetCategory() + autoVariableCount();
         };
-        void addPopupItem_IntermediateVariable() { addNode<IntermediateVariableNode, 1>(); };
-        void addPopupItem_ConstantFloat() { addNode<FloatConstantNode>(); };
+        void addPopupItem_ConstantFloat() {
+            auto node = addNode<FloatConstantNode>();
+            node->variableName = node->GetCategory() + autoVariableCount();
+        };
 
         void addPopupItem_VariableVector3() {
             auto node = addNode<Vector3VariableNode>();
-            node->variableName = node->GetCategory() + std::to_string(variable_counter++);
+            node->variableName = node->GetCategory() + autoVariableCount();
         };
         void addPopupItem_ConstantVector3() { addNode<Vector3ConstantNode>(); };
 
