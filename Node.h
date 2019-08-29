@@ -67,11 +67,7 @@ namespace ShaderNodeEditor {
     private:
         static const size_t invalid_index = 0;
     };
-    struct OutputNode
-    {
-        size_t in;
-        size_t out;
-    };
+
     enum NodeType
     {
         Node_Number,

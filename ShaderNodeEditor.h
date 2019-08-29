@@ -4,31 +4,12 @@ namespace ShaderNodeEditor {
     class ShaderNodeEditor
     {
     public:
-        template<typename NODE_T, size_t _INPUT_COUNT,size_t _OUTPUT_COUNT>
-        NodePtr addNode() {
-        NodePtr op_ptr = std::make_shared<NODE_T>();
-        op_ptr->Id.op = graph_.add_node(op_ptr);
-        op_ptr->type = NodeType::Node_Operation;
-
-        for (size_t i = 0; i < _INPUT_COUNT; ++i) {
-            NodePtr value_ptr = std::make_shared<NumberNode>();
-            value_ptr->type = NodeType::Node_Number;
-            size_t node_id = graph_.add_node(value_ptr);
-
-            op_ptr->Id.params.emplace_back(node_id,value_ptr);
-            graph_.add_edge(op_ptr->Id.op, op_ptr->Id.params[i].id);
-        }
-
-        addNodeToGraph(NODE_T::Name, op_ptr);//放在最后，因为被 std::move 掉了
-        return op_ptr;
-    }
-        template<typename NODE_T, size_t _COUNT>
+        template<typename NODE_T, size_t _INPUT_COUNT, size_t _OUTPUT_COUNT>
         NodePtr addNode() {
             NodePtr op_ptr = std::make_shared<NODE_T>();
             op_ptr->Id.op = graph_.add_node(op_ptr);
-            op_ptr->type = NodeType::Node_Operation;
 
-            for (size_t i = 0; i < _COUNT; ++i) {
+            for (size_t i = 0; i < _INPUT_COUNT; ++i) {
                 NodePtr value_ptr = std::make_shared<NumberNode>();
                 value_ptr->type = NodeType::Node_Number;
                 size_t node_id = graph_.add_node(value_ptr);
@@ -38,6 +19,23 @@ namespace ShaderNodeEditor {
             }
 
             addNodeToGraph(NODE_T::StringMetaMap["Name"].get_default(), op_ptr);//放在最后，因为被 std::move 掉了
+            return op_ptr;
+        }
+        template<typename NODE_T, size_t _COUNT>
+        NodePtr addNode(bool addGraph = true) {
+            NodePtr op_ptr = std::make_shared<NODE_T>();
+            op_ptr->Id.op = graph_.add_node(op_ptr);
+
+            for (size_t i = 0; i < _COUNT; ++i) {
+                NodePtr value_ptr = std::make_shared<NumberNode>();
+                value_ptr->type = NodeType::Node_Number;
+                size_t node_id = graph_.add_node(value_ptr);
+
+                op_ptr->Id.params.emplace_back(node_id, value_ptr);
+                graph_.add_edge(op_ptr->Id.op, op_ptr->Id.params[i].id);
+            }
+            if (addGraph)
+                addNodeToGraph(NODE_T::StringMetaMap["Name"].get_default(), op_ptr);//放在最后，因为被 std::move 掉了
             op_ptr->OnNodeCreate();
             return op_ptr;
         }
@@ -45,24 +43,24 @@ namespace ShaderNodeEditor {
         NodePtr addNode() {
             NodePtr op_ptr = std::make_shared<NODE_T>();
             op_ptr->Id.op = graph_.add_node(op_ptr);
-            op_ptr->type = NodeType::Node_Operation;
 
             addNodeToGraph(NODE_T::StringMetaMap["Name"].get_default(), op_ptr);//放在最后，因为被 std::move 掉了
             return op_ptr;
         }
+
     public:
 
         ShaderNodeEditor() = default;
         ~ShaderNodeEditor() = default;
         Graph graph_;
-        StaticVector<OutputNode, 1> output_nodes_;
+        StaticVector<NodePtr, 1> output_nodes_;
+        std::vector<NodePtr> intermediate_nodes_;
         std::unordered_map<std::string, NodeVec> nodes;
         void Init();
         void Show();
     private:
         void addNodeToGraph(const std::string& node_name, NodePtr& node);
         bool removeNodeFromGraph(const std::string& node_name, size_t id);
-        bool removeOutputNodeFromGraph(size_t id);
         bool findRemoveNode(size_t id);
         //更新Input Node变化有些节点需要删除
         bool updateEdge(NodePtr& p);
@@ -84,11 +82,13 @@ namespace ShaderNodeEditor {
         void showPopupMenu();
         void linkInput();
     private:
-        void addOutput();
+        void addOutputDiffuse() { output_nodes_.push_back(addNode<OutputDiffuseNode, 1>(false)); }
+        void addIntermediateVariable() { intermediate_nodes_.push_back(addNode<IntermediateVariableNode, 1>(false)); }
         void addPopupItem_VariableFloat() {
             auto node = addNode<FloatVariableNode>();
             node->variableName = node->GetCategory() + std::to_string(variable_counter++);
         };
+        void addPopupItem_IntermediateVariable() { addNode<IntermediateVariableNode, 1>(); };
         void addPopupItem_ConstantFloat() { addNode<FloatConstantNode>(); };
 
         void addPopupItem_VariableVector3() {

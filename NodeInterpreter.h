@@ -16,7 +16,7 @@ namespace ShaderNodeEditor {
         const char* name;
     };
     struct INodeInterpreter {
-        INodeInterpreter():needUpdateEdge(false) {
+        INodeInterpreter() :needUpdateEdge(false) ,type(NodeType::Node_Operation){
             std::memset(number.fVal, 0, sizeof(number.fVal));
             variableName.reserve(255);
         };
@@ -41,13 +41,16 @@ namespace ShaderNodeEditor {
         virtual bool ForceShowNumber() { return false; }
         virtual bool ForceHideParamNumber() { return false; }
         virtual bool IsValid() { return true; }
+        virtual void ThrowError(const std::string& error) { errorInfo = error; }
+        virtual void ClearError(const std::string& error) { errorInfo = ""; }
         virtual std::string GetOutput(size_t i) { assert(OutputPinMeta.size() > 1); return ""; }
         void SetRuntimeType(PinValueType type) { runtimeValueType = type; };
         void* NumberData() { return &number.fVal[0]; }
         virtual PinValueType MergeOutputType(const std::vector<PinValueType>& p);
         bool drawVectorVariable(int size) { return drawVectorVariable(size, number.fVal); }
-        bool drawVectorVariable(int size, float* data);
-        bool drawDragIntVariable(const char* label, int* value, int min_val, int max_val);
+        bool drawVectorVariable(int size, float* data, float min_val = 0.0f, float max_val = 0.0f);
+        bool drawDragIntVariable(const char* label, int* value, int min_val = 0, int max_val = 0);
+        bool drawDragFloatVariable(const char* label, float* value, float min_val = 0.0f, float max_val = 0.0f);
         bool drawUpdownIntVariable(const char* label, int* value, int min_val, int max_val);
         int drawEnumVariable(int size, const char* labels[], int init_label = 0);
         //如果有变量名,就单独创建一个变量
@@ -56,6 +59,7 @@ namespace ShaderNodeEditor {
         PinValue number;//constant variable output用
         PinValueType runtimeValueType;
         NodeId Id;
+        std::string errorInfo;
         bool needUpdateEdge;//通知graph是否需要更新，在减少Input节点数目的时候需要处理删除连接
     };
 
@@ -111,14 +115,16 @@ namespace ShaderNodeEditor {
 #define INTERPRET_END }
 #define FORCE_HIDE_PARAM bool ForceHideParamNumber()override { return true; }
     extern size_t VariableCount;
-    struct NumberNode :public IOperationInterpreter {
+    struct NumberNode :public IOperationInterpreter{
         NumberNode() {
             SetRuntimeType(PinValueType::Any);
+            type = NodeType::Node_Number;
         }
         INTERPRET_BEGIN(0, 1)
             return "Number(Any Type)";
         INTERPRET_END
     };
+
     struct FloatConstantNode :public IConstantInterpreter {
         FloatConstantNode() {
             SetRuntimeType(PinValueType::Float);
@@ -129,7 +135,6 @@ namespace ShaderNodeEditor {
             else return variableName;
         INTERPRET_END
     };
-
     struct FloatVariableNode :public IVariableInterpreter {
         FloatVariableNode() {
             SetRuntimeType(PinValueType::Float);
@@ -164,6 +169,50 @@ namespace ShaderNodeEditor {
                 "," + std::to_string(number.fVal[1]) +
                 "," + std::to_string(number.fVal[2]) + ")";
             else return variableName;
+        INTERPRET_END
+    };
+
+    //根据RuntimeType决定返回类型
+    struct IntermediateVariableNode : public IOperationInterpreter {
+        IntermediateVariableNode() {
+            type = NodeType::Node_Output;
+        }
+        std::string GetTypeName() {
+            switch (runtimeValueType)
+            {
+            case PinValueType::Float:
+                return "float";
+            case PinValueType::Vector2:
+                return "float2";
+            case PinValueType::Vector3:
+                return "float3";
+            case PinValueType::Vector4:
+                return "float4";
+            case PinValueType::INT:
+                return "int";
+            case PinValueType::UINT:
+                return "uint";
+            case PinValueType::BOOL:
+                return "bool";
+            default:
+                break;
+            }
+            return "Unknow Type";
+        }
+
+
+        INTERPRET_BEGIN(1, 0)
+            return GetTypeName() + " " + (variableName.empty() ? "Empty Name" : variableName) + " = {0};";
+        INTERPRET_END
+    };
+
+    struct OutputDiffuseNode : public IOperationInterpreter
+    {
+        OutputDiffuseNode(){
+            type = NodeType::Node_Output;
+        }
+        INTERPRET_BEGIN(1, 0)
+            return "return {0};";
         INTERPRET_END
     };
 
@@ -278,35 +327,6 @@ namespace ShaderNodeEditor {
                 break;
             }
         return "";
-        INTERPRET_END
-    };
-
-    //根据RuntimeType决定返回类型
-    struct IntermediateVariableNode : public IOperationInterpreter {
-        std::string GetTypeName() {
-            switch (runtimeValueType)
-            {
-            case PinValueType::Float:
-                return "float";
-            case PinValueType::Vector2:
-                return "float2";
-            case PinValueType::Vector3:
-                return "float3";
-            case PinValueType::Vector4:
-                return "float4";
-            case PinValueType::INT:
-                return "int";
-            case PinValueType::UINT:
-                return "uint";
-            case PinValueType::BOOL:
-                return "bool";
-            default:
-                break;
-            }
-            return "";
-        }
-        INTERPRET_BEGIN(1, 1)
-            return GetTypeName() + " " + variableName + " = {0};";
         INTERPRET_END
     };
 

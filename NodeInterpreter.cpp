@@ -26,7 +26,7 @@ namespace ShaderNodeEditor {
         }
         return PinValueType::None;
     }
-    bool INodeInterpreter::drawVectorVariable(int size, float* data)
+    bool INodeInterpreter::drawVectorVariable(int size, float* data, float min_val , float max_val )
     {
         bool changed = false;
         for (int i = 0; i < size; i++) {
@@ -35,8 +35,8 @@ namespace ShaderNodeEditor {
                 xyzw[i],
                 &data[i],
                 0.01f,
-                0.f,
-                1.0f);
+                min_val,
+                max_val);
             ImGui::PopItemWidth();
         }
         return changed;
@@ -44,6 +44,10 @@ namespace ShaderNodeEditor {
     bool INodeInterpreter::drawDragIntVariable(const char* label, int* value, int min_val, int max_val)
     {
         return ImGui::DragInt(label, value, 1.0, min_val, max_val);
+    }
+    bool INodeInterpreter::drawDragFloatVariable(const char* label, float* value, float min_val, float max_val)
+    {
+        return ImGui::DragFloat(label, value, 1.0, min_val, max_val);
     }
     bool INodeInterpreter::drawUpdownIntVariable(const char* label, int* value, int min_val, int max_val)
     {
@@ -79,6 +83,14 @@ namespace ShaderNodeEditor {
     NODE_PROPERTY(NumberNode, Number, Number, number present, (.0f, .0f, .0f, 1.0f), 80);
     const std::array<NodeInputPinMeta, 0> NumberNode::InputPinMeta = {};
     const std::array<NodeOutputPinMeta, 1> NumberNode::OutputPinMeta = { "Output(Number)" };
+
+    NODE_PROPERTY(IntermediateVariableNode, IntermediateVariable, IntermediateVariable, intermediate variable, (.0f, .0f, .0f, 1.0f), 60);
+    const std::array<NodeInputPinMeta, 1> IntermediateVariableNode::InputPinMeta = { NodeInputPinMeta{"Input",PinValueType::Any} };
+    const std::array<NodeOutputPinMeta, 0> IntermediateVariableNode::OutputPinMeta = { };
+
+    NODE_PROPERTY(OutputDiffuseNode, Diffuse, Diffuse,no light diffuse , (.0f, .0f, .0f, 1.0f), 60);
+    const std::array<NodeInputPinMeta, 1> OutputDiffuseNode::InputPinMeta = { NodeInputPinMeta{"Diffuse",PinValueType::Any} };
+    const std::array<NodeOutputPinMeta, 0> OutputDiffuseNode::OutputPinMeta = {};
 
     NODE_PROPERTY(FloatConstantNode, Float_Constant, Constant, const float type, (.0f, .0f, .0f, 1.0f), 80);
     const std::array<NodeInputPinMeta, 0> FloatConstantNode::InputPinMeta = {};
@@ -127,10 +139,6 @@ namespace ShaderNodeEditor {
     NODE_PROPERTY(MultiplyAddNode, MultiplyAdd, Math, return x * y + z, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 3> MultiplyAddNode::InputPinMeta = { NodeInputPinMeta{"Mul Left",PinValueType::Demical_Float},NodeInputPinMeta{"Mul Right",PinValueType::Demical_Float},NodeInputPinMeta{"Add Right",PinValueType::Demical_Float} };
     const std::array<NodeOutputPinMeta, 1> MultiplyAddNode::OutputPinMeta = { "Result" };
-
-    NODE_PROPERTY(IntermediateVariableNode, IntermediateVariable, Misc, create intermediate variable, (1.0f, .0f, 0.5f, 1.0f), 100);
-    const std::array<NodeInputPinMeta, 1> IntermediateVariableNode::InputPinMeta = { NodeInputPinMeta{"Input(Vector)",PinValueType::Demical_Float} };
-    const std::array<NodeOutputPinMeta, 1> IntermediateVariableNode::OutputPinMeta = { "Result" };
 
     NODE_PROPERTY(AppendChannelNode, AppendChannel, Misc, append channel, (1.0f, .0f, 0.5f, 1.0f), 100);
     const std::array<NodeInputPinMeta, 4> AppendChannelNode::InputPinMeta = { NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float},NodeInputPinMeta{"Input(Float)",PinValueType::Float} };

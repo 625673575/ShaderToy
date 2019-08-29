@@ -8,7 +8,7 @@ namespace ShaderNodeEditor {
     {
 #define ADD_POPUP_NODE_ITEM(NAME,FUNC) {#NAME, std::bind(&ShaderNodeEditor::FUNC, this)}
         click_pos = ImVec2(400.0f, 200.0f);
-        addOutput();
+        addOutputDiffuse();
         popupNodesFunctions.emplace("Constant", std::map<std::string, std::function<void()>>{
             ADD_POPUP_NODE_ITEM(Float, addPopupItem_ConstantFloat),
                 ADD_POPUP_NODE_ITEM(Vector3, addPopupItem_ConstantVector3)
@@ -67,25 +67,12 @@ namespace ShaderNodeEditor {
         }
     }
 
-    bool ShaderNodeEditor::removeOutputNodeFromGraph(size_t id)
-    {
-        if (output_nodes_.size() > 0u && output_nodes_[0].out == id)
-        {
-            const auto& node = output_nodes_[0];
-            graph_.erase_node(node.out);
-            graph_.erase_node(node.in);
-            output_nodes_.pop_back();
-            return true;
-        }
-        return false;
-    }
-
     void ShaderNodeEditor::Show()
     {
         ImGui::Begin("Visual Shader Editor", &is_open, ImVec2(1024, 640), 0.9f, ImGuiWindowFlags_NoCollapse);
 
         if (ImGui::Button("Eval")) {
-            graph_.evaluate(output_nodes_[0u].out);
+            graph_.evaluate(output_nodes_[0u]->Id.op);
         }
 
         imnodes::BeginNodeEditor();
@@ -118,7 +105,9 @@ namespace ShaderNodeEditor {
                     edge_iter = std::find_if(graph_.begin_edges(), graph_.end_edges(), [param_id](auto& x) {return x.second.to == param_id; });
                     if (edge_iter != graph_.end_edges()) {
                         auto node = graph_.node(edge_iter->second.to);
-                        node->type = Node_Operation;
+                        if (node->type != Node_Output) {
+                            node->type = Node_Operation;
+                        }
                         graph_.erase_node(edge_iter->second.to);
                     }
                 }
@@ -217,29 +206,33 @@ namespace ShaderNodeEditor {
             imnodes::PushColorStyle(imnodes::ColorStyle_TitleBar, IM_COL32(11, 109, 191, 255));
             imnodes::PushColorStyle(imnodes::ColorStyle_TitleBarHovered, IM_COL32(45, 126, 194, 255));
             imnodes::PushColorStyle(imnodes::ColorStyle_TitleBarSelected, IM_COL32(81, 148, 204, 255));
-            imnodes::BeginNode(node.out);
+            imnodes::BeginNode(node->Id.op);
             imnodes::Name("output");
 
             ImGui::Dummy(ImVec2(node_width, 0.f));
             {
+                size_t i = 0;
                 // TODO: the color style of the pin needs to be pushed here
-                imnodes::BeginInputAttribute(int(node.in));
-                const float label_width = ImGui::CalcTextSize("in").x;
-                ImGui::Text("in");
-                auto& input = graph_.node(node.in);
-                if (input->type == Node_Number)
-                {
-                    ImGui::SameLine();
-                    ImGui::PushItemWidth(node_width - label_width);
-                    ImGui::DragFloat(
-                        "##hidelabel",
-                        static_cast<float*>(input->NumberData()),
-                        0.01f,
-                        0.f,
-                        1.0f);
-                    ImGui::PopItemWidth();
+                for (auto in : node->Id.params) {
+                    imnodes::BeginInputAttribute(int(in.id));
+                    auto& meta= node->GetInputMetaInfo(i++);
+                    const float label_width = ImGui::CalcTextSize(meta.name).x;
+                    ImGui::Text(meta.name);
+                    auto& input = graph_.node(in.id);
+                    if (input->type == Node_Number)
+                    {
+                        ImGui::SameLine();
+                        ImGui::PushItemWidth(node_width - label_width);
+                        ImGui::DragFloat(
+                            "##hidelabel",
+                            static_cast<float*>(input->NumberData()),
+                            0.01f,
+                            0.f,
+                            1.0f);
+                        ImGui::PopItemWidth();
+                    }
+                    imnodes::EndAttribute();
                 }
-                imnodes::EndAttribute();
             }
 
             imnodes::EndNode();
@@ -338,11 +331,13 @@ namespace ShaderNodeEditor {
 
             {
                 auto& metaInfo = v->GetOutputMetaInfo(0);
-                imnodes::BeginOutputAttribute(int(node.op));
-                const float label_width = ImGui::CalcTextSize(metaInfo.name).x;
-                ImGui::Indent(node_width - label_width);
-                ImGui::Text(metaInfo.name);
-                imnodes::EndAttribute();
+                if (metaInfo.name != nullptr) {
+                    imnodes::BeginOutputAttribute(int(node.op));
+                    const float label_width = ImGui::CalcTextSize(metaInfo.name).x;
+                    ImGui::Indent(node_width - label_width);
+                    ImGui::Text(metaInfo.name);
+                    imnodes::EndAttribute();
+                }
             }
 
             imnodes::EndNode();
@@ -503,27 +498,6 @@ namespace ShaderNodeEditor {
 
         showPopupMenu();
     }
-
-    void ShaderNodeEditor::addOutput()
-    {
-        OutputNode node;
-
-        NodePtr in = std::make_shared<FloatVariableNode>();
-        in->type = NodeType::Node_Number;
-
-        NodePtr op = std::make_shared<FloatVariableNode>();
-        op->type = NodeType::Node_Output;
-
-        node.out = graph_.add_node(op);
-        node.in = graph_.add_node(in);
-        output_nodes_.push_back(node);
-
-        graph_.add_edge(node.out, node.in);
-
-        imnodes::SetNodePos(node.out, click_pos);
-    }
-
-
 
     static ShaderNodeEditor color_editor;
 }

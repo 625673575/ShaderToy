@@ -68,22 +68,12 @@ namespace ShaderNodeEditor {
             if (!cur_node->IsValid()) {
                 continue;
             }
-            switch (cur_node->type)
-            {
-            case Node_Number:
+            if (cur_node->type == Node_Number)
             {
                 token.push("%N");
             }
-            break;
-            case Node_NumberExpression:
-                //    if (nodes_[node]->Id.params.empty()) {
-                //    OutputDebugStringA((" Expression Param Empty" + std::to_string(nodes_[node]->number.fVal[0])).c_str());
-                //}
-                //    else {
-                //    OutputDebugStringA((" Expression " + std::to_string(nodes_[node]->Id.params[0].value.fVal[0])).c_str());
-                //}
-                break;
-            case Node_Operation: {
+            //if (cur_node->type == Node_NumberExpression) {}
+            if (cur_node->type == Node_Operation || cur_node->type == Node_Output) {
                 OutputDebugStringA(" Operation:");
                 auto stackSize = token.size();
                 std::string snippet = nodes_[node]->Interpret();
@@ -122,12 +112,8 @@ namespace ShaderNodeEditor {
                 }
                 OutputDebugStringA(nodes_[node]->Interpret().c_str());
             }
-                                 break;
-            case Node_Output:
+            if (cur_node->type == Node_Output) {
                 OutputDebugStringA(" Output ");
-                break;
-            default:
-                assert("Invalid enum value!");
             }
         }
         assert(token.size() == 1);
@@ -138,5 +124,5 @@ namespace ShaderNodeEditor {
         }
         OutputDebugStringA("\n");
     }
-    
+
 }
