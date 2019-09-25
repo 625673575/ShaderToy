@@ -21,7 +21,7 @@ namespace ShaderNodeEditor {
         T real_value;
         bool use_default;
         VariableWithDefault() :use_default(true) {}
-        VariableWithDefault(T in) :default_value(in),use_default(true) {}
+        VariableWithDefault(T in) :default_value(in), use_default(true) {}
         void set_value(const T& val) { use_default = false; real_value = val; }
         void set_default() { use_default = true; }
         const T& get_value() { return use_default ? default_value : real_value; }
@@ -33,7 +33,7 @@ namespace ShaderNodeEditor {
         const char* default_value;
         std::string real_value;
         bool use_default = true;
-        VariableWithDefault() :use_default(true),default_value(nullptr) {}
+        VariableWithDefault() :use_default(true), default_value(nullptr) {}
         VariableWithDefault(const char* in) :default_value(in), use_default(true) {}
         void set_value(const std::string& val) { use_default = false; real_value = val; }
         void set_default() { use_default = true; }
@@ -98,7 +98,7 @@ namespace ShaderNodeEditor {
         float fVal[16];
     };
     struct NodeParam {
-        NodeParam(size_t _id,const NodePtr& node=nullptr) :id(_id),value(node) {}
+        NodeParam(size_t _id, const NodePtr& node = nullptr) :id(_id), value(node) {}
         inline bool operator==(size_t i) const { return id == i; }
         size_t id;
         NodePtr value;
@@ -370,4 +370,12 @@ namespace ShaderNodeEditor {
         std::unordered_map<size_t, Edge> edges_;
     };
 
+    class NodeCompositor {
+    public:
+        NodeCompositor() {}
+    public:
+        std::vector<size_t>edge_compositor;
+        std::vector<size_t>node_compositor;
+        std::string name;
+    };
 }

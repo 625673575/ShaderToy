@@ -1,5 +1,5 @@
 #include "NodeInterpreter.h"
-
+#include "imnodes.h"
 namespace ShaderNodeEditor {
     size_t VariableCount = 1;
 
@@ -7,6 +7,9 @@ namespace ShaderNodeEditor {
     const char* ShaderNodeEditor::XYZW[4] = { "x","y","z","w" };
     const char* ShaderNodeEditor::rgba[4] = { "r","g","b","a" };
     const char* ShaderNodeEditor::RGBA[4] = { "R","G","B","A" };
+    const char* ShaderNodeEditor::VectorNamingSets[2] = { "rgba","xyzw" };
+    std::string GetNameingSet(int set, int idx) { return set == 0 ? rgba[idx] : xyzw[idx]; }
+    const char** GetNameingSet(int set) { return set == 0 ? rgba : xyzw; }
 
     PinValueType INodeInterpreter::MergeOutputType(const std::vector<PinValueType>& p)
     {
@@ -26,6 +29,7 @@ namespace ShaderNodeEditor {
         }
         return PinValueType::None;
     }
+
     bool INodeInterpreter::drawVectorVariable(int size, float* data, float min_val , float max_val )
     {
         bool changed = false;
@@ -57,10 +61,10 @@ namespace ShaderNodeEditor {
         if (r && *value < min_val) { *value = min_val; r = false; }
         return r;
     }
-    int INodeInterpreter::drawEnumVariable(int size, const char* items[], int init_label)
+    int INodeInterpreter::drawEnumVariable(const char* label,int size, const char* items[], int init_label)
     {
         const char* current_item = items[init_label];
-        if (ImGui::BeginCombo("##combo", current_item)) // The second parameter is the label previewed before opening the combo.
+        if (ImGui::BeginCombo(label, current_item)) // The second parameter is the label previewed before opening the combo.
         {
             for (int n = 0; n < size; n++)
             {
@@ -84,9 +88,13 @@ namespace ShaderNodeEditor {
     const std::array<NodeInputPinMeta, 0> NumberNode::InputPinMeta = {};
     const std::array<NodeOutputPinMeta, 1> NumberNode::OutputPinMeta = { "Output(Number)" };
 
+    NODE_PROPERTY(TempVariableNode, TempVariable, Custom, custom created variable, (.0f, .0f, .0f, 1.0f), 80);
+    const std::array<NodeInputPinMeta, 0> TempVariableNode::InputPinMeta = {};
+    const std::array<NodeOutputPinMeta, 1> TempVariableNode::OutputPinMeta = { "Output" };
+
     NODE_PROPERTY(IntermediateVariableNode, IntermediateVariable, Misc, intermediate variable, (.0f, .0f, .0f, 1.0f), 60);
     const std::array<NodeInputPinMeta, 1> IntermediateVariableNode::InputPinMeta = { NodeInputPinMeta{"Input",PinValueType::Any} };
-    const std::array<NodeOutputPinMeta, 0> IntermediateVariableNode::OutputPinMeta = { };
+    const std::array<NodeOutputPinMeta, 0> IntermediateVariableNode::OutputPinMeta = {};
 
     NODE_PROPERTY(OutputDiffuseNode, Diffuse, Output,no light diffuse , (.0f, .0f, .0f, 1.0f), 60);
     const std::array<NodeInputPinMeta, 1> OutputDiffuseNode::InputPinMeta = { NodeInputPinMeta{"Diffuse",PinValueType::Any} };

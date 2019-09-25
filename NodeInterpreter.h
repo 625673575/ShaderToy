@@ -7,6 +7,9 @@ namespace ShaderNodeEditor {
     extern const char* XYZW[4];
     extern const char* rgba[4];
     extern const char* RGBA[4];
+    extern const char* VectorNamingSets[2];
+    extern std::string GetNameingSet(int set, int idx);
+    extern const char** GetNameingSet(int set);
 
     struct NodeInputPinMeta {
         const char* name;
@@ -16,7 +19,7 @@ namespace ShaderNodeEditor {
         const char* name;
     };
     struct INodeInterpreter {
-        INodeInterpreter() :needUpdateEdge(false) ,type(NodeType::Node_Operation){
+        INodeInterpreter() :needUpdateEdge(false), type(NodeType::Node_Operation) {
             std::memset(number.fVal, 0, sizeof(number.fVal));
             variableName.reserve(255);
         };
@@ -40,6 +43,7 @@ namespace ShaderNodeEditor {
 
         virtual bool ForceShowNumber() { return false; }
         virtual bool ForceHideParamNumber() { return false; }
+        virtual bool ShowVariableNameEditor() { return false; }
         virtual bool IsValid() { return true; }
         virtual void ThrowError(const std::string& error) { errorInfo = error; }
         virtual void ClearError(const std::string& error) { errorInfo = ""; }
@@ -52,7 +56,7 @@ namespace ShaderNodeEditor {
         bool drawDragIntVariable(const char* label, int* value, int min_val = 0, int max_val = 0);
         bool drawDragFloatVariable(const char* label, float* value, float min_val = 0.0f, float max_val = 0.0f);
         bool drawUpdownIntVariable(const char* label, int* value, int min_val, int max_val);
-        int drawEnumVariable(int size, const char* labels[], int init_label = 0);
+        int drawEnumVariable(const char* label, int size, const char* labels[], int init_label = 0);
         //如果有变量名,就单独创建一个变量
         std::string variableName;
         NodeType type;
@@ -70,11 +74,13 @@ namespace ShaderNodeEditor {
     struct IVariableInterpreter :public INodeInterpreter {
         IVariableInterpreter() = default;
         virtual ~IVariableInterpreter() = default;
+        bool ShowVariableNameEditor() override { return true; }
         FORCE_SHOW_NUMBER
     };
     struct IConstantInterpreter :public INodeInterpreter {
         IConstantInterpreter() = default;
         virtual ~IConstantInterpreter() = default;
+        bool ShowVariableNameEditor() override { return true; }
         FORCE_SHOW_NUMBER
     };
     struct IOperationInterpreter :public INodeInterpreter {
@@ -115,7 +121,7 @@ namespace ShaderNodeEditor {
 #define INTERPRET_END }
 #define FORCE_HIDE_PARAM bool ForceHideParamNumber()override { return true; }
     extern size_t VariableCount;
-    struct NumberNode :public IOperationInterpreter{
+    struct NumberNode :public IOperationInterpreter {
         NumberNode() {
             SetRuntimeType(PinValueType::Any);
             type = NodeType::Node_Number;
@@ -172,11 +178,21 @@ namespace ShaderNodeEditor {
         INTERPRET_END
     };
 
+    struct TempVariableNode :public IVariableInterpreter {
+        TempVariableNode(){
+            SetRuntimeType(PinValueType::Any);
+        }
+        void OnInspectGUI()override { drawVectorVariable(1, number.fVal); }
+        INTERPRET_BEGIN(0, 1)
+            return variableName;
+        INTERPRET_END
+    };
     //根据RuntimeType决定返回类型
     struct IntermediateVariableNode : public IOperationInterpreter {
         IntermediateVariableNode() {
             type = NodeType::Node_Output;
         }
+        bool ShowVariableNameEditor() override { return true; }
         std::string GetTypeName() {
             switch (runtimeValueType)
             {
@@ -208,7 +224,7 @@ namespace ShaderNodeEditor {
 
     struct OutputDiffuseNode : public IOperationInterpreter
     {
-        OutputDiffuseNode(){
+        OutputDiffuseNode() {
             type = NodeType::Node_Output;
         }
         INTERPRET_BEGIN(1, 0)
@@ -299,14 +315,10 @@ namespace ShaderNodeEditor {
             }
         }
         void OnPropertyChanged() {
-            changeName();
             changeParamNodeValid();
             needUpdateEdge = true;
         }
-        void changeName() {
-            std::string ChannelName = "AppendChannel Vector" + std::to_string(channel_count);
-            StringMetaMap["Name"].set_value(ChannelName);
-        }
+
         void changeParamNodeValid() {
             for (int i = 0; i < 4; ++i) {
                 if (auto& v = Id.params[i].value; v != nullptr) {
@@ -332,8 +344,9 @@ namespace ShaderNodeEditor {
 
 
     struct MaskNode :public IOperationInterpreter {
-        int mask_idx;
-        MaskNode() :mask_idx(0) { changeName(); }
+        int mask_idx, naming_mode;
+
+        MaskNode() :mask_idx(0), naming_mode(0) { SetRuntimeType(PinValueType::Float); }
         std::string GetOutput(size_t i)override {
             char x[] = ".x";
             if (mask_idx) {
@@ -342,18 +355,21 @@ namespace ShaderNodeEditor {
             }
         }
         void OnPropertyChanged() {
-            changeName();
         }
-        void changeName() {
-            std::string MaskName = "MaskR";
-            MaskName[4] = RGBA[mask_idx][0];
-            StringMetaMap["Name"].set_value(MaskName);
-        }
+
         void OnInspectGUI()override {
-            if (auto x = drawEnumVariable(4, RGBA, mask_idx); x > -1)
+            if (auto x = drawEnumVariable("##combo_RGBA", ARRAYSIZE(RGBA), GetNameingSet(naming_mode), mask_idx); x > -1)
             {
                 if (mask_idx != x) {
                     mask_idx = x;
+                    OnPropertyChanged();
+                }
+            }
+
+            if (auto n = drawEnumVariable("##combo_Naming", ARRAYSIZE(VectorNamingSets), VectorNamingSets, naming_mode); n > -1)
+            {
+                if (naming_mode != n) {
+                    naming_mode = n;
                     OnPropertyChanged();
                 }
             }
@@ -369,7 +385,7 @@ namespace ShaderNodeEditor {
         }
         FORCE_HIDE_PARAM
             INTERPRET_BEGIN(1, 1)
-            std::string x(&xyzw[mask_idx][0]);
+            std::string x = GetNameingSet(naming_mode, mask_idx);
         return "({0}." + x + ")";
         INTERPRET_END
 

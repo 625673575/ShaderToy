@@ -54,8 +54,18 @@ namespace ShaderNodeEditor {
         ~ShaderNodeEditor() = default;
         Graph graph_;
         StaticVector<NodePtr, 1> output_nodes_;
-        std::vector<NodePtr> intermediate_nodes_;
         std::unordered_map<std::string, NodeVec> nodes;
+        std::vector<NodeCompositor> compositors;
+
+        NodeVec intermediate_nodes() {
+            NodeVec r;
+            for (auto& v : nodes) {
+                if (v.first == std::string("IntermediateVariable"))
+                    for (auto& temp : v.second)
+                        r.push_back(temp);
+            }
+            return r;
+        }
         void Init();
         void Show();
     private:
@@ -77,35 +87,67 @@ namespace ShaderNodeEditor {
         void drawNodeProperty(NodePtr& ptr);
     private:
         void showOutputNodes();
-        void showIntermediateVariable(NodePtr& ptr);
         void showLinks();
         void showCommonNodes();
         void showCommonNode(const std::string& name, NodeVec& nodes);
         void showPopupMenu();
         void linkInput();
     private:
+        void addPopupItem_Mask() {
+            NodeCompositor comp;
+            auto nodeI = addNode<IntermediateVariableNode, 1>();
+            nodeI->variableName = "Intermediate_" + autoVariableCount();
+            comp.node_compositor.push_back(nodeI->Id.op);
+            auto nodeT = addNode<TempVariableNode>();
+            nodeT->variableName = nodeI->variableName;
+            comp.node_compositor.push_back(nodeT->Id.op);
+
+            for (int i = 0; i < 4; ++i) {
+                auto nodeFrom = addNode<MaskNode, 1>();
+                std::static_pointer_cast<MaskNode>(nodeFrom)->mask_idx = i;
+                auto from_id = nodeFrom->Id.params[0].id;
+                comp.node_compositor.push_back(from_id);
+                auto edge_id = graph_.add_edge(from_id, nodeT->Id.op);
+                comp.edge_compositor.push_back(edge_id);
+                graph_.node(from_id)->type = Node_NumberExpression;//必须要有否则无法Eval
+            }
+            comp.name = "MaskRGBA";
+            compositors.push_back(std::move(comp));
+        }
+        void showCompositor_Mask();
+    private:
         void addOutputDiffuse() {
             output_nodes_.push_back(addNode<OutputDiffuseNode, 1>(false));
         }
         void addPopupItem_IntermediateVariable() {
-            auto node = addNode<IntermediateVariableNode, 1>(false);
-            node->variableName = node->GetCategory() + autoVariableCount();
-            intermediate_nodes_.push_back(node);
+            auto node = addNode<IntermediateVariableNode, 1>();
+            node->variableName = node->GetName() + autoVariableCount();
+        }
+
+        void addPopupItem_TempVariable() {
+            auto node = addNode<TempVariableNode>();
+            auto node_vec = intermediate_nodes();
+            if (node_vec.empty())return;
+
+            node->variableName = node_vec.front()->variableName;
         }
         void addPopupItem_VariableFloat() {
             auto node = addNode<FloatVariableNode>();
-            node->variableName = node->GetCategory() + autoVariableCount();
+            node->variableName = node->GetName() + autoVariableCount();
         };
         void addPopupItem_ConstantFloat() {
             auto node = addNode<FloatConstantNode>();
-            node->variableName = node->GetCategory() + autoVariableCount();
+            node->variableName = node->GetName() + autoVariableCount();
         };
 
         void addPopupItem_VariableVector3() {
             auto node = addNode<Vector3VariableNode>();
-            node->variableName = node->GetCategory() + autoVariableCount();
+            node->variableName = node->GetName() + autoVariableCount();
         };
-        void addPopupItem_ConstantVector3() { addNode<Vector3ConstantNode>(); };
+        void addPopupItem_ConstantVector3() {
+            auto node = addNode<Vector3ConstantNode>();
+            node->variableName = node->GetName() + autoVariableCount();
+        };
 
         void addPopupItem_Time() { addNode<TimeNode>(); };
         void addPopupItem_Sine() { addNode<SinNode, 1>(); };
@@ -117,6 +159,6 @@ namespace ShaderNodeEditor {
         void addPopupItem_MultiplyAdd() { addNode<MultiplyAddNode, 3>(); };
 
         void addPopupItem_AppendChannel() { addNode<AppendChannelNode, 4>(); };
-        void addPopupItem_Mask() { addNode<MaskNode, 1>(); };
+        void addPopupItem_Mask1() { addNode<MaskNode, 1>(); };
     };
 }
